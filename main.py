@@ -13,25 +13,29 @@ def main():
            [9, 10, 11, 12],
            [13, 14, 15, 0]]
 
+
     # testing with 2x2 puzzle
-    inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]]]
-    inti = [[[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
-    sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+    inti = [[[1, 2], [0, 3]]]
+    sol = [[1, 2], [3, 0]]
 
-    puzzle = puzzle15(inti[0], goal=sol)
-    node1 = node(puzzle.state)
+    # testing with 3x3 puzzle
+    # inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]]]
+    # inti = [[[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
+    # sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
-    children = node1.children()
-    # for child in children:
-    #     print(str(child))
 
-    print('game start')
-    searcher = dfs(puzzle.state, puzzle.goal)
-    searcher.search()
-    # print(searcher)
-    for sol in searcher.solutions:
-        print('one solution is ')
-        for node_ in sol:
+
+    for i in range(len(inti)-1, -1, -1):
+        puzzle = puzzle15(inti[i], goal=sol)
+        file = open('nodePath_'+ str(i+1) + '.txt', 'w')
+
+        print('game start')
+        searcher = dfs(puzzle.state, puzzle.goal)
+        searcher.search()
+        searcher.retrivePathToTxtFile(file)
+        for node_ in searcher.solutions:
+            print('one solution is ')
+
             print(str(node_))
 
 

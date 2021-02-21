@@ -21,6 +21,11 @@ class node:
     def blankTileLocation(self):
         return np.where(self.state == 0)
 
+    # to string col-wise
+    def toColWiseString(self):
+        state = np.transpose(self.state).flatten()
+        return str(state)
+
     # to string
     def __str__(self):
         return str(self.state)
@@ -47,8 +52,10 @@ class dfs:
         # as long as stack is not empty, keep dfs
         # for _ in range(5):
         while self.stack:
-            if i%100000 == 0: print('another', i)
+            if i%100000 == 0:
+                print('loop', i)
             i += 1
+
             # for node in self.stack:
             #     print(str(node))
 
@@ -58,7 +65,7 @@ class dfs:
                 child_hash = str(child)
                 if child_hash == self.goal_hash:  # reach a goal
                     print('find a solution')
-                    self.solutions.append(self.retrivePath(node_cur))   # retrieve ancestors from goal node
+                    self.solutions.append(child)   # retrieve ancestors from goal node
                     # return
                 else:  # this child is not a goal
                     if child_hash not in self.visited:  # this child represent a new state never seen before
@@ -66,14 +73,20 @@ class dfs:
                         self.stack.append(child)
 
     # return parents of this node as a list
-    def retrivePath(self, node_):
-        nodes, node_cur = [self.goal_hash], node_
-        while node_cur is not None:
-            nodes.append(node_cur)
-            parent = node_cur.parent
-            node_cur = parent
-        nodes.reverse()
-        return nodes
+    def retrivePathToTxtFile(self, file):
+        for i in range(len(self.solutions)):
+            path, node_cur = [], self.solutions[i]
+            while node_cur is not None:  # keep going until root
+                path.append(node_cur)  # follow the convention to output matrix column wise
+                parent = node_cur.parent
+                node_cur = parent
+            path.reverse()
+
+            file.write("one solution is\n")
+            for node_ in path:  # keep going until root
+                nodeColWiseString = node_.toColWiseString()
+                file.write(nodeColWiseString+'\n')  # follow the convention to output matrix column wise
+        return
 
 
 # puzzle class, represents the state of puzzle, could perform quzzle action
