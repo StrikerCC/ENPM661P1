@@ -11,7 +11,7 @@ class node:
     # return a list of child
     def children(self):
         nodes = []
-        for move in [up, down, left, right]:
+        for move in [up, left, down, right]:
             node_next = node(self.state, parent=self)
             if move(node_next): nodes.append(node_next)
 
@@ -45,11 +45,12 @@ class dfs:
 
         i = 0
         # as long as stack is not empty, keep dfs
+        # for _ in range(5):
         while self.stack:
-            print(i)
+            if i%100000 == 0: print('another', i)
             i += 1
-            for node in self.stack:
-                print(str(node))
+            # for node in self.stack:
+            #     print(str(node))
 
             node_cur = self.stack.pop()     # take a node from stack
             children = node_cur.children()  # children expanded from this node
@@ -58,6 +59,7 @@ class dfs:
                 if child_hash == self.goal_hash:  # reach a goal
                     print('find a solution')
                     self.solutions.append(self.retrivePath(node_cur))   # retrieve ancestors from goal node
+                    # return
                 else:  # this child is not a goal
                     if child_hash not in self.visited:  # this child represent a new state never seen before
                         self.visited.add(child_hash)
@@ -76,6 +78,8 @@ class dfs:
 
 # puzzle class, represents the state of puzzle, could perform quzzle action
 class puzzle15:
+
+    # default 4x4 puzzle goal
     goal_defalut = np.array([[1, 2, 3, 4],
                               [5, 6, 7, 8],
                               [9, 10, 11, 12],
@@ -86,7 +90,10 @@ class puzzle15:
         elif type(nums) == np.ndarray: self.state = nums
         else: AssertionError('puzzle takes ', nums)
 
-        self.goal = goal
+        if type(goal) == list: self.goal = np.array(goal)
+        elif type(goal) == np.ndarray: self.goal = goal
+        else: AssertionError('puzzle takes ', goal)
+
         # self.actions = [self.moveUp, self.moveDown, self.moveLeft, self.moveRight]
 
     # query of blank tile location
