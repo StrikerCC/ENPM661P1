@@ -12,17 +12,16 @@ search class search goal node based on given initial node
 # Instructions to run the code
 First create initial state and goal state as a 2d list.  
 then build puzzle15 class with those states.  
-`
-state_initial = [[1, 2, 3, 4], 
+`state_initial = [[1, 2, 3, 4], 
                 [5, 6, 0, 8], 
                 [9, 10, 7, 12], 
-                [13, 14, 11, 15]]  
-sol = [[1, 2, 3, 4],
+                [13, 14, 11, 15]]`
+`sol = [[1, 2, 3, 4],
        [5, 6, 7, 8],
        [9, 10, 11, 12],
-       [13, 14, 15, 0]]  
-puzzle = puzzle15(inti, goal=sol)  
-`  
+       [13, 14, 15, 0]]`
+`puzzle = puzzle15(inti, goal=sol)`
+``
 
 Next, create bfs object, and start search  
 `searcher = bfs(puzzle.state, puzzle.goal)  
