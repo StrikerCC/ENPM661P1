@@ -1,10 +1,10 @@
 # ENPM661P1
-puzzle challenge 
+puzzle challenge  
 
 # library 
 To import required library, first import numpy to store the digits in a 2d-array.  
 then from search import puzzle15, bfs.  
-puzzle15 class give user UI to play with puzzle game 
+puzzle15 class give user UI to play with puzzle game.  
 node class store state puzzle, and generate children node  
 search class search goal node based on given initial node  
 `from search import node, bfs, puzzle15`  
@@ -25,7 +25,7 @@ puzzle = puzzle15(inti, goal=sol)
 `  
 
 Next, create bfs object, and start search  
-`searcher = bfs(puzzle.state, puzzle.goal)
+`searcher = bfs(puzzle.state, puzzle.goal)  
 searcher.search()`  
 
 Finally, retrieve path to txtFile  
