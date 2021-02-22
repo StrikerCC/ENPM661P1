@@ -15,17 +15,19 @@ then build puzzle15 class with those states.
 `state_initial = [[1, 2, 3, 4], 
                 [5, 6, 0, 8], 
                 [9, 10, 7, 12], 
-                [13, 14, 11, 15]]`
+                [13, 14, 11, 15]]`  
+
 `sol = [[1, 2, 3, 4],
        [5, 6, 7, 8],
        [9, 10, 11, 12],
-       [13, 14, 15, 0]]`
-`puzzle = puzzle15(inti, goal=sol)`
-``
+       [13, 14, 15, 0]]`  
+
+`puzzle = puzzle15(inti, goal=sol)`   
 
 Next, create bfs object, and start search  
-`searcher = bfs(puzzle.state, puzzle.goal)  
-searcher.search()`  
+`searcher = bfs(puzzle.state, puzzle.goal)`  
+
+`searcher.search()`  
 
 Finally, retrieve path to txtFile  
-`searcher.retrivePathToTxtFile(file)`
+`searcher.retrivePathToTxtFile(file)`  
