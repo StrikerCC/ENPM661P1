@@ -24,11 +24,16 @@ class node:
     # to string col-wise
     def toColWiseString(self):
         state = np.transpose(self.state).flatten()
-        return str(state)
+        return str(state)[1:-1]
+
+    # to integer 
+    def __int__(self):
+        state = np.transpose(self.state).flatten()
+        return sum(d * 10 ** i for i, d in enumerate(state[::-1]))
 
     # to string
     def __str__(self):
-        return str(self.state)
+        return str(self.state)[1:-1]
 
     # to int for hashing
     def __hash__(self):
@@ -40,9 +45,9 @@ class bfs:
     def __init__(self, state_init, goal):
         self.queue_node = deque([node(state_init)])
         self.visited = set()
-        self.visited.add(str(self.queue_node[0]))
+        self.visited.add(int(self.queue_node[0]))
         self.goal = node(goal)
-        self.goal_hash = str(self.goal)
+        self.goal_hash = int(self.goal)
         self.solutions = []
         print('searching ready')
 
@@ -57,12 +62,12 @@ class bfs:
             i += 1
 
             # for node in self.stack:
-            #     print(str(node))
+            #     print(int(node))
 
             node_cur = self.queue_node.popleft()     # take a node from stack
             children = node_cur.children()  # children expanded from this node
             for child in children:
-                child_hash = str(child)
+                child_hash = int(child)
                 if child_hash == self.goal_hash:  # reach a goal
                     print('find a solution')
                     self.solutions.append(child)   # retrieve ancestors from goal node
@@ -83,7 +88,7 @@ class bfs:
                 node_cur = parent
             path.reverse()
 
-            file.write("one solution is\n")
+            file.write(i, " th solution is\n")
             for node_ in path:  # keep going until root
                 nodeColWiseString = node_.toColWiseString()
                 file.write(nodeColWiseString+'\n')  # follow the convention to output matrix column wise

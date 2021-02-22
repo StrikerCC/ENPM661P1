@@ -13,7 +13,6 @@ def main():
            [9, 10, 11, 12],
            [13, 14, 15, 0]]
 
-
     # testing with 2x2 puzzle
     # inti = [[[1, 2], [0, 3]], [[3, 1], [2, 0]]]
     # sol = [[1, 2], [3, 0]]
@@ -21,8 +20,6 @@ def main():
     # testing with 3x3 puzzle
     inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]], [[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
     sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
-
-
 
     for i in range(len(inti)-1, -1, -1):
         puzzle = puzzle15(inti[i], goal=sol)
