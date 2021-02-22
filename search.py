@@ -26,10 +26,10 @@ class node:
         state = np.transpose(self.state).flatten()
         return str(state)[1:-1]
 
-    # to integer 
+    # to integer
     def __int__(self):
         state = np.transpose(self.state).flatten()
-        return sum(d * 10 ** i for i, d in enumerate(state[::-1]))
+        return int(sum(d * 10 ** i for i, d in enumerate(state[::-1])))
 
     # to string
     def __str__(self):
@@ -66,6 +66,8 @@ class bfs:
 
             node_cur = self.queue_node.popleft()     # take a node from stack
             children = node_cur.children()  # children expanded from this node
+
+            child_hash = 0
             for child in children:
                 child_hash = int(child)
                 if child_hash == self.goal_hash:  # reach a goal
@@ -76,6 +78,8 @@ class bfs:
                     if child_hash not in self.visited:  # this child represent a new state never seen before
                         self.visited.add(child_hash)
                         self.queue_node.append(child)
+                    else:   # this child is repeative
+                        del child
 
     # return parents of this node as a list
     def retrivePathToTxtFile(self, file):
@@ -88,7 +92,7 @@ class bfs:
                 node_cur = parent
             path.reverse()
 
-            file.write(i, " th solution is\n")
+            file.write(str(i+1) + " th solution is\n")
             for node_ in path:  # keep going until root
                 nodeColWiseString = node_.toColWiseString()
                 file.write(nodeColWiseString+'\n')  # follow the convention to output matrix column wise

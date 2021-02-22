@@ -18,16 +18,17 @@ def main():
     # sol = [[1, 2], [3, 0]]
 
     # testing with 3x3 puzzle
-    inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]], [[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
-    sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+    # inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]], [[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
+    # sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
     for i in range(len(inti)-1, -1, -1):
         puzzle = puzzle15(inti[i], goal=sol)
         file = open('nodePath_'+ str(i+1) + '.txt', 'w')
 
-        print('game start')
+        print('search start')
         searcher = bfs(puzzle.state, puzzle.goal)
         searcher.search()
+        print('finished search')
         searcher.retrivePathToTxtFile(file)
 
         # for node_ in searcher.solutions:
