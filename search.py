@@ -1,5 +1,5 @@
 import numpy as np
-
+from collections import deque
 
 class node:
 
@@ -36,11 +36,11 @@ class node:
 
 
 # searching algorithm object
-class dfs:
+class bfs:
     def __init__(self, state_init, goal):
-        self.stack = [node(state_init)]
+        self.queue_node = deque([node(state_init)])
         self.visited = set()
-        self.visited.add(str(self.stack[0]))
+        self.visited.add(str(self.queue_node[0]))
         self.goal = node(goal)
         self.goal_hash = str(self.goal)
         self.solutions = []
@@ -51,7 +51,7 @@ class dfs:
         i = 0
         # as long as stack is not empty, keep dfs
         # for _ in range(5):
-        while self.stack:
+        while self.queue_node:
             if i%100000 == 0:
                 print('loop', i)
             i += 1
@@ -59,7 +59,7 @@ class dfs:
             # for node in self.stack:
             #     print(str(node))
 
-            node_cur = self.stack.pop()     # take a node from stack
+            node_cur = self.queue_node.popleft()     # take a node from stack
             children = node_cur.children()  # children expanded from this node
             for child in children:
                 child_hash = str(child)
@@ -70,10 +70,11 @@ class dfs:
                 else:  # this child is not a goal
                     if child_hash not in self.visited:  # this child represent a new state never seen before
                         self.visited.add(child_hash)
-                        self.stack.append(child)
+                        self.queue_node.append(child)
 
     # return parents of this node as a list
     def retrivePathToTxtFile(self, file):
+        if not self.solutions: file.write('no solution in this case\n')
         for i in range(len(self.solutions)):
             path, node_cur = [], self.solutions[i]
             while node_cur is not None:  # keep going until root

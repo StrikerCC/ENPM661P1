@@ -1,4 +1,4 @@
-from search import node, dfs, puzzle15
+from search import node, bfs, puzzle15
 
 
 def main():
@@ -15,13 +15,12 @@ def main():
 
 
     # testing with 2x2 puzzle
-    inti = [[[1, 2], [0, 3]]]
-    sol = [[1, 2], [3, 0]]
+    # inti = [[[1, 2], [0, 3]], [[3, 1], [2, 0]]]
+    # sol = [[1, 2], [3, 0]]
 
     # testing with 3x3 puzzle
-    # inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]]]
-    # inti = [[[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
-    # sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+    inti = [[[1, 2, 3], [4, 0, 5], [6, 7, 8]], [[1, 0, 2], [3, 4, 5], [6, 7, 8]]]
+    sol = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
 
 
@@ -30,13 +29,14 @@ def main():
         file = open('nodePath_'+ str(i+1) + '.txt', 'w')
 
         print('game start')
-        searcher = dfs(puzzle.state, puzzle.goal)
+        searcher = bfs(puzzle.state, puzzle.goal)
         searcher.search()
         searcher.retrivePathToTxtFile(file)
-        for node_ in searcher.solutions:
-            print('one solution is ')
 
-            print(str(node_))
+        # for node_ in searcher.solutions:
+        #     print('one solution is ')
+        #
+        #     print(str(node_))
 
 
 if __name__ == '__main__':
