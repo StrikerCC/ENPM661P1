@@ -2,8 +2,7 @@
 puzzle challenge 
 
 # library 
-to import required library,   
-first import numpy to store the digits in a 2d-array 
+To import required library, first import numpy to store the digits in a 2d-array.  
 then from search import puzzle15, bfs.  
 puzzle15 class give user UI to play with puzzle game 
 node class store state puzzle, and generate children node  
@@ -11,7 +10,7 @@ search class search goal node based on given initial node
 `from search import node, bfs, puzzle15`  
 
 # Instructions to run the code
-first create initial state and goal state as a 2d list.  
+First create initial state and goal state as a 2d list.  
 then build puzzle15 class with those states.  
 `
 state_initial = [[1, 2, 3, 4], 
