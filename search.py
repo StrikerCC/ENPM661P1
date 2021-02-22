@@ -53,13 +53,12 @@ class bfs:
 
     def search(self):
 
-        i = 0
         # as long as stack is not empty, keep dfs
-        # for _ in range(5):
-        while self.queue_node:
-            if i%100000 == 0:
+        for i in range(1000000*1):
+        # while self.queue_node:
+            if i % 100000 == 0:
                 print('loop', i)
-            i += 1
+            # i += 1
 
             # for node in self.stack:
             #     print(int(node))
