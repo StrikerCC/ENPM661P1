@@ -2,9 +2,10 @@ import numpy as np
 # from robotPlanning.robot import robot, point_robot, rigid_robot
 # import queue
 import cv2
+import copy
 
 debug_showmap = True
-debug_nodeinfo = True
+debug_nodeinfo = False
 
 
 class node:
@@ -36,7 +37,7 @@ class node:
 
 
 class node_heuristic(node):
-    def __init__(self, state, heuristic, parent):
+    def __init__(self, state, heuristic, parent=None):
         super().__init__(state, parent)
         self.heuristic = heuristic
 
@@ -46,11 +47,24 @@ class node_heuristic(node):
     def update_heuristic(self, heuristic):
         self.heuristic = heuristic
 
+    def expand(self, robot_, map_):
+        children = []
+        robot_.teleport(self.state)  # make a robot at this state, for movement at this node state
+        for move in robot_.actionset():
+            robot_copy = robot_.copy()
+            dist = move(robot_copy)
+            if map_.invalidArea(robot_copy):
+                children.append(node_heuristic(robot_copy.loc(), self.heuristic+dist))
+        return children
+
     def __lt__(self, other):
         return self.heuristic < other.heuristic
 
-    # def __eq__(self, other):
-    #     return self.heuristic == other.heuristic
+    def __gt__(self, another):
+        assert isinstance(another, node_heuristic)
+        assert self.state.dtype == another.state.dtype, 'class state type ' + str(
+            self.state.dtype) + ' not comparable with input state type' + str(another.state.dtype)
+        return self.heuristic > another.heuristic
 
 
 class bfs:  # searching algorithm object
@@ -151,16 +165,19 @@ class Dijkstra(bfs):  # searching algorithm object
     # robot type
     # graph of robotPlanning field
     def search(self, state_init, state_goal, robot_, map_):
+
         # make sure initial and goal state is not in obstacle
         if not map_.isfree(state_init) or not map_.isfree(state_goal):
             print("start location or goal location in obstacle")
             return
 
         # initialize control variables for searching
-        node_start = node(state_init)  # start node
-        node_goal = node(state_goal)  # goal node
+        node_start = node_heuristic(state_init, heuristic=0)  # start node
+        node_goal = node_heuristic(state_goal, heuristic=0)  # goal node
         visited = np.zeros(map_.size, dtype=np.uint8)  # map mask of visited node
-        visited[map_.get_map()] = 75
+        visited[map_.get_map_obstacle()] = 75  # mark obstacle as 75
+        heuristic = np.zeros(map_.size, dtype=np.int)
+        heuristic[:, :] = np.inf
         nodes_sorted = [node_start]  # min priority queue of node, priority is heuristics
 
         i = 0
@@ -169,31 +186,64 @@ class Dijkstra(bfs):  # searching algorithm object
             if i % 500 == 0:
                 print('loop', i)
 
-            node_cur = nodes_sorted.pop()  # take a node from stack
-            if node_cur == node_goal:  # reach a goal
-                print('find a solution')
-                if self.retrieve_goal_node:  # show optimal path
+            node_cur = pop_min(nodes_sorted)      # take the node with smallest heuristic from list
+            if node_cur == node_goal:           # reach a goal
+                if self.retrieve_goal_node:     # show optimal path
                     self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
                 return node_cur
             else:
                 if debug_nodeinfo:
-                    print(i, " step, reach ", node_cur, ', heuristic ', node_cur.heuristic)
+                    print(i, " step, reach ", node_cur)
                 if debug_showmap:
-                    # cv2.imshow('highlight explored', cv2.flip(visited, 0))
-                    # cv2.waitKey(1)
-                    pass
+                    cv2.imshow('highlight explored', cv2.flip(visited, 0))
+                    cv2.waitKey(1)
                 children = node_cur.expand(robot_, map_)  # children expanded from this node
                 for child in children:  # for each child
-                    if debug_nodeinfo: print('find new node')
-                    if visited[tuple(child.state)] == 0:  # this child represent a new state never seen before
-                        visited[tuple(child.state)] = 155
+                    if visited[child.get_state()] == 0:  # this child represent a new state
+                        visited[child.get_state()] = 155  # mark visited as 155
                         nodes_sorted.append(child)
-                    else:  # this child is repetitive
+                    else:   # this is a visited not expanded node
                         for node_ in nodes_sorted:  # find the node in list
-                            if child == node_:
-                                node_.update_heuristic(min(node.get_heuristic()), node_cur.get_heuristic() + node.dist(child))   # update the heuristic
-                        nodes_sorted.sort()   # resort the list
+                            if child == node_:  # find a repeated node , update its heuristic
+                                node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
 
         # couldn't find a valid solution
         print("run out of nodes")
         return None
+
+
+def pop_min(list_):
+    if not list_: return None
+    i_min, ele_min = 0, list_[0]
+    for i in range(len(list_)):
+        if list_[i] < ele_min:
+            ele_min = list_[i]
+            i_min = i
+    return list_.pop(i_min)
+
+
+
+# def insert_2_sorted_list(element, sorted_list):
+#     # binary insert
+#     if element < sorted_list[0]:
+#         sorted_list.insert(0, element)
+#         return
+#     if element > sorted_list[-1]:
+#         sorted_list.append(element)
+#         return
+#     left, right = 0, len(sorted_list)-1
+#     while True:
+#         mid = int((left + right) / 2)
+#         if element > sorted_list[mid]:  # go right
+#             left = mid
+#         elif element < sorted_list[mid]:  # go left
+#             right = mid
+#         else:  # same priority element
+#             sorted_list.insert(mid, element)
+#             break
+#         if right-left <= 1:
+#             sorted_list.insert(right, element)
+#             break
+
+
+

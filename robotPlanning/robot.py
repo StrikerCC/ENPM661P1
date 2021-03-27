@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import math
 
 debug = True
 
@@ -24,31 +25,39 @@ class robot:
 
     def move_left(self):
         self.state[1] -= 1
+        return 1
 
     def move_right(self):
         self.state[1] += 1
+        return 1
 
     def move_up(self):
         self.state[0] += 1
+        return 1
 
     def move_down(self):
         self.state[0] -= 1
+        return 1
 
     def move_low_left(self):
         self.move_left()
         self.move_down()
+        return math.sqrt(2)
 
     def move_low_right(self):
         self.move_right()
         self.move_down()
+        return math.sqrt(2)
 
     def moveUpRight(self):
         self.move_up()
         self.move_right()
+        return math.sqrt(2)
 
     def move_up_left(self):
         self.move_up()
         self.move_left()
+        return math.sqrt(2)
 
     def copy(self):
         return robot(copy.deepcopy(self.state))
