@@ -7,7 +7,7 @@ import random
 
 def main():
     print("Game start")
-    graph_ = graph_point_robot()
+    graph_ = graph_point_robot(height=300, width=400)
     print(graph_.size)
 
     ### testing obstacle
@@ -24,9 +24,9 @@ def main():
     graph_.add_ellipsoid_obstacle((246, 145), 60/2, 120/2)
     # graph_.show()
 
-    # testing robot object
-    # robot = node_point_robot((0, 0))
-    # children = robot.children(robot, graph_)
+    # testing robotPlanning object
+    # robotPlanning = node_point_robot((0, 0))
+    # children = robotPlanning.children(robotPlanning, graph_)
     # for child in children:
     #     print(child)
     planning = bfs(graph_)
