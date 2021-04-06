@@ -5,7 +5,7 @@ import cv2
 import copy
 
 debug_showmap = True
-debug_nodeinfo = False
+debug_nodeinfo = True
 
 
 class node:
@@ -72,14 +72,26 @@ class bfs:  # searching algorithm object
         self.retrieve_goal_node = retrieve_goal_node
         print('searching ready')
 
-    # initial state
-    # goal state
-    # robot type
-    # graph of robotPlanning field
+
     def search(self, state_init, state_goal, robot_, map_):
+        """
+        breath first searching
+        :param state_init: initial state
+        :type state_init:
+        :param state_goal: goal state
+        :type state_goal:
+        :param robot_: robot type
+        :type robot_:
+        :param map_: graph of robotPlanning field
+        :type map_:
+        :return:
+        :rtype:
+        """
+
         # make sure initial and goal state is not in obstacle
-        if not map_.isfree(state_init) or not map_.isfree(state_goal):
-            print("start location or goal location in obstacle")
+        robot_.teleport(state_init)
+        if not map_.invalidArea(robot_):
+            print("start location or goal location in or too close to obstacle")
             return
 
         # initialize control variables for searching
@@ -112,7 +124,6 @@ class bfs:  # searching algorithm object
                     if visited[child.get_state()] == 0:  # this child represent a new state never seen before
                         visited[child.get_state()] = 155    # mark visited as 155
                         breath.append(child)
-
 
         # couldn't find a valid solution
         print("run out of nodes")
@@ -160,33 +171,114 @@ class Dijkstra(bfs):  # searching algorithm object
     def __init__(self, retrieve_goal_node=False):
         super().__init__(retrieve_goal_node)
 
-    # initial state
-    # goal state
-    # robot type
-    # graph of robotPlanning field
+
     def search(self, state_init, state_goal, robot_, map_):
+        """
+        Dijkstra searching
+        :param state_init: initial state
+        :type state_init:
+        :param state_goal: goal state
+        :type state_goal:
+        :param robot_: robot type
+        :type robot_:
+        :param map_: graph of robotPlanning field
+        :type map_:
+        :return:
+        :rtype:
+        """
 
         # make sure initial and goal state is not in obstacle
-        if not map_.isfree(state_init) or not map_.isfree(state_goal):
-            print("start location or goal location in obstacle")
+        robot_.teleport(state_init)
+        if not map_.invalidArea(robot_) or not map_.invalidArea(robot_):
+            print("start location or goal location in or too close to obstacle")
             return
 
         # initialize control variables for searching
-        node_start = node_heuristic(state_init, heuristic=0)  # start node
-        node_goal = node_heuristic(state_goal, heuristic=0)  # goal node
-        visited = np.zeros(map_.size, dtype=np.uint8)  # map mask of visited node
-        visited[map_.get_map_obstacle()] = 75  # mark obstacle as 75
-        heuristic = np.zeros(map_.size, dtype=np.int)
-        heuristic[:, :] = np.inf
-        nodes_sorted = [node_start]  # min priority queue of node, priority is heuristics
+        node_start = node_heuristic(state_init, heuristic=0)    # start node
+        node_goal = node_heuristic(state_goal, heuristic=0)     # goal node
+        visited = np.zeros(map_.size, dtype=np.uint8)           # map mask of visited node
+        visited[map_.get_map_obstacle()] = 75                   # mark obstacle as 75
+
+        nodes_ = [node_start]  # min priority queue of node, priority is heuristics
 
         i = 0
-        while nodes_sorted:  # as long as stack is not empty, keep dfs
+        while nodes_:  # as long as stack is not empty, keep dfs
             i += 1
             if i % 500 == 0:
                 print('loop', i)
 
-            node_cur = pop_min(nodes_sorted)      # take the node with smallest heuristic from list
+            node_cur = pop_min(nodes_)      # take the node with smallest heuristic from list
+            if node_cur == node_goal:           # reach a goal
+                print('find the solution')
+                if self.retrieve_goal_node:     # show optimal path
+                    self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
+                return node_cur
+            else:
+                if debug_nodeinfo:
+                    print(i, " step, reach ", node_cur)
+                if debug_showmap:
+                    cv2.imshow('highlight explored', cv2.flip(visited, 0))
+                    cv2.waitKey(1)
+                children = node_cur.expand(robot_, map_)  # children expanded from this node
+                for child in children:  # for each child
+                    if visited[child.get_state()] == 0:  # this child represent a new state
+                        visited[child.get_state()] = 155  # mark visited as 155
+                        nodes_.append(child)
+                    else:   # this is a visited not expanded node
+                        for node_ in nodes_:  # find the node in list
+                            if child == node_:  # find a repeated node , update its heuristic
+                                node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
+
+        # couldn't find a valid solution
+        print("run out of nodes")
+        return None
+
+
+class Astart(bfs):
+    def __init__(self, retrieve_goal_node=False):
+        super().__init__(retrieve_goal_node)
+
+
+    def search(self, state_init, state_goal, robot_, map_):
+        """
+        A* searching
+        :param state_init: initial state
+        :type state_init:
+        :param state_goal: goal state
+        :type state_goal:
+        :param robot_: robot type
+        :type robot_:
+        :param map_: graph of robotPlanning field
+        :type map_:
+        :return:
+        :rtype:
+        """
+
+        # make sure initial and goal state is not in obstacle
+        robot_.teleport(state_init)
+        if not map_.invalidArea(robot_) or not map_.invalidArea(robot_):
+            print("start location or goal location in or too close to obstacle")
+            return
+
+        # initialize control variables for searching
+        node_start = node_heuristic(state_init, heuristic=0)    # start node
+        node_goal = node_heuristic(state_goal, heuristic=0)     # goal node
+        visited = np.zeros(map_.size, dtype=np.uint8)           # map mask of visited node
+        visited[map_.get_map_obstacle()] = 75                   # mark obstacle as 75
+        nodes_ = [node_start]  # min priority queue of node, priority is heuristics
+
+        # initialize a cost function from point on map to goal
+        cost_to_goal = self.dis_to_point(state_goal, map_)
+        # heuristic = np.zeros(map_.size, dtype=np.int)
+        # heuristic[:, :] = np.inf
+
+        i = 0
+        while nodes_:  # as long as stack is not empty, keep dfs
+            i += 1
+            if i % 500 == 0:
+                print('loop', i)
+
+            node_cur = pop_min(nodes_)      # take the node with smallest heuristic from list
             if node_cur == node_goal:           # reach a goal
                 if self.retrieve_goal_node:     # show optimal path
                     self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
@@ -201,15 +293,33 @@ class Dijkstra(bfs):  # searching algorithm object
                 for child in children:  # for each child
                     if visited[child.get_state()] == 0:  # this child represent a new state
                         visited[child.get_state()] = 155  # mark visited as 155
-                        nodes_sorted.append(child)
+                        nodes_.append(child)
                     else:   # this is a visited not expanded node
-                        for node_ in nodes_sorted:  # find the node in list
+                        for node_ in nodes_:  # find the node in list
                             if child == node_:  # find a repeated node , update its heuristic
                                 node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
 
         # couldn't find a valid solution
         print("run out of nodes")
         return None
+
+    # return a numpy array representation of distance from points on map to input point
+    def dis_to_point(self, point, map_):
+        # assert isinstance(map_, map_with)
+        assert isinstance(point, tuple) and len(point) == len(map_.size)
+
+        point_np = np.array(point)
+        dis_to_goal = np.zeros(map_.size, dtype=np.float)  # distances map
+        dis_to_goal[:, :] = np.inf                         # initialize all distance to inf
+
+        obstacle = map_.get_map_obstacle()
+        for i in range(map_.shape[0]):
+            for j in range(map_.shape[1]):
+                if obstacle[i, j]:  # point not in obstacle
+                    point_map = np.array((i, j))
+                    dis_to_goal[i, j] = np.linalg.norm(point_map-point_np)
+        print(dis_to_goal)
+        return dis_to_goal
 
 
 def pop_min(list_):

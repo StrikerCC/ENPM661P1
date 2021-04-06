@@ -46,14 +46,19 @@ class graph_point_robot():
     # size = tuple()
     def __init__(self, height=300, width=500):
         self.size = (height, width)
+        self.obstacles = []
         self.map_obstacle = np.zeros(self.size, dtype=np.bool)
+        self.map_obstacle_expand = np.zeros(self.size, dtype=np.bool)
 
     def get_map(self):
         return self.map_obstacle
 
+    def get_expanded_map(self):
+        return self.map_obstacle_expand
+
     def add_rectangle_obstacle(self, corner_ll, width, height, angle):
-        # self.obstacles.append(
-        #     geometry('rectangle', {"corner_ll": np.array(corner_ll), "width": width, "height": height, "angle": angle}))
+        self.obstacles.append({'type': 'rectangle', 'corner_ll': corner_ll, 'width': width, 'height': height, 'angle': angle})
+
         angle *= math.pi/180
         arctan_h_w = math.atan(height/width)
         diag = math.sqrt(width**2+height**2)
@@ -72,6 +77,8 @@ class graph_point_robot():
 
 
     def add_polygon_obstacle(self, points):
+        self.obstacles.append({'type': 'polygon', 'points':points})
+
         obstacle = geometry('polygon', points)
         for i in range(self.size[0]):
             for j in range(self.size[1]):
@@ -79,6 +86,8 @@ class graph_point_robot():
                     self.map_obstacle[i, j] = True
 
     def add_circular_obstacle(self, center, radius):
+        self.obstacles.append({'type': 'circular', 'center': center, 'radius': radius})
+
         obstacle = geometry('circular', {"center": np.array(center)[::-1], "radius": radius})
         for i in range(self.size[0]):
             for j in range(self.size[1]):
@@ -86,6 +95,8 @@ class graph_point_robot():
                     self.map_obstacle[i, j] = True
 
     def add_ellipsoid_obstacle(self, center, semi_major_axis, semi_minor_axis):
+        self.obstacles.append({'type': 'ellipsoid', 'center': center, 'semi_major_axis': semi_major_axis, 'semi_minor_axis': semi_minor_axis})
+
         obstacle = geometry('ellipsoid', {"center": np.array(center)[::-1], "semi_major_axis": semi_minor_axis,
                                                      "semi_minor_axis": semi_major_axis})
         for i in range(self.size[0]):
@@ -93,12 +104,15 @@ class graph_point_robot():
                 if obstacle.inside((i, j)):
                     self.map_obstacle[i, j] = True
 
-    def __getitem__(self, indexes):
+    def __getitem__(self, indexes, expand):
         assert len(indexes) == 2
-        return self.map_obstacle[indexes]
+        return self.map_obstacle[indexes] if not expand else self.map_obstacle_expand[indexes]
 
     def freeToGo(self, point):
         return not self.map_obstacle[tuple(point)]
+
+    def freeToGo_expand(self, point):
+        return not self.map_obstacle_expand[tuple(point)]
 
     def show(self):
         img = np.ones(self.size) * 200

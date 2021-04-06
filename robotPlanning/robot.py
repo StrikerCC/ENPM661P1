@@ -6,14 +6,26 @@ debug = True
 
 
 class robot:
-    def __init__(self, state):
-        self.state = state if type(state) == np.ndarray else np.array(state)
+    def __init__(self, state=None):
+        self.state = None
+        if isinstance(state, np.ndarray):
+            self.state = state
+        elif isinstance(state, list):
+            self.state = np.array(state)
 
     def loc(self):
         return tuple(self.state)
 
     def teleport(self, state):
-        self.state = state if isinstance(state, np.ndarray) else np.array(state)
+        if isinstance(state, np.ndarray):
+            self.state = state
+        elif isinstance(state, list):
+            self.state = np.array(state)
+        elif isinstance(state, tuple):
+            self.state = np.array(state)
+        else:
+            AssertionError('cannot recognize input state', state)
+        return self
 
     def actionset(self):
         return [point_robot.moveUpRight,
@@ -67,13 +79,24 @@ class robot:
 
 
 class point_robot(robot):
-    def __init__(self, state):
+    def __init__(self, state=None):
         super().__init__(state)
+
+    def copy(self): return point_robot(copy.deepcopy(self.state))
 
 
 class rigid_robot(robot):
-    def __init__(self, state, clearance):
+    def __init__(self, state=None, clearance=0):
+        """
+
+        :param state:
+        :type state:
+        :param clearance: closet distance from robot center to obstacle to avoid collision
+        :type clearance: int or float
+        """
         super().__init__(state)
         self.clearanc = clearance
 
     def clearance(self): return self.clearanc
+
+    def copy(self): return rigid_robot(copy.deepcopy(self.state), self.clearance())
