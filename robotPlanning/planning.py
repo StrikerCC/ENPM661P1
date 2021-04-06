@@ -5,13 +5,13 @@ import cv2
 import copy
 
 debug_showmap = True
-debug_nodeinfo = True
+debug_nodeinfo = False
 
 
 class node:
-    def __init__(self, state, parent_state=None):
+    def __init__(self, state, parent=None):
         self.state = state if type(state) == np.ndarray else np.array(state)
-        self.parent_state = parent_state
+        self.parent = parent
 
     def get_state(self):
         return tuple(self.state)
@@ -23,7 +23,8 @@ class node:
             robot_copy = robot_.copy()
             move(robot_copy)
             if map_.invalidArea(robot_copy):
-                childern.append(node(robot_copy.loc()))
+                child = node(robot_copy.loc(), parent=self)
+                childern.append(child)
         return childern
 
     # to string
@@ -54,7 +55,7 @@ class node_heuristic(node):
             robot_copy = robot_.copy()
             dist = move(robot_copy)
             if map_.invalidArea(robot_copy):
-                children.append(node_heuristic(robot_copy.loc(), self.heuristic+dist))
+                children.append(node_heuristic(robot_copy.loc(), self.heuristic+dist, parent=self))
         return children
 
     def __lt__(self, other):
@@ -68,12 +69,12 @@ class node_heuristic(node):
 
 
 class bfs:  # searching algorithm object
-    def __init__(self, retrieve_goal_node=False):
+    def __init__(self, retrieve_goal_node=False, filepath=None):
         self.retrieve_goal_node = retrieve_goal_node
         print('searching ready')
 
 
-    def search(self, state_init, state_goal, robot_, map_):
+    def search(self, state_init, state_goal, robot_, map_, filepath=None):
         """
         breath first searching
         :param state_init: initial state
@@ -110,7 +111,7 @@ class bfs:  # searching algorithm object
             node_cur = breath.pop(0)  # take a node from stack
             if node_cur == node_goal:  # reach a goal
                 if self.retrieve_goal_node:  # show optimal path
-                    self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
+                    self.retrievePath(node_cur, img=visited, filename=filepath)
                 return node_cur
             else:
                 if debug_nodeinfo:
@@ -139,7 +140,10 @@ class bfs:  # searching algorithm object
             file.write('no solution with this map\n')
         else:
             path, node_cur = [], node_
+            i = 0
             while node_cur is not None:  # keep going until root
+                print(i)
+                i += 1
                 path.append(node_cur)  # follow the convention to output matrix column wise
                 parent = node_cur.parent
                 node_cur = parent
@@ -154,17 +158,14 @@ class bfs:  # searching algorithm object
 
             # show found path
             # if show:
-            #     for i, node_ in enumerate(path):
-            #         img[tuple(node_.state)] = 255
-            #         cv2.imshow('highlight optimal path', cv2.flip(img, 0))
-            #         if i == len(path)-1:
-            #             cv2.waitKey(0)
-            #         else:   # hold on for user to input
-            #             cv2.waitKey(10)
+            for i, node_ in enumerate(path):
+                img[tuple(node_.state)] = 100
+                cv2.imshow('highlight optimal path', cv2.flip(img, 0))
+                if i == len(path)-1:
+                    cv2.waitKey(0)
+                else:   # hold on for user to input
+                    cv2.waitKey(10)
         return
-
-    def start_or_goal_in_obstacle(self, state_init, state_goal):
-        return self.map_[state_init] or self.map_[state_goal]
 
 
 class Dijkstra(bfs):  # searching algorithm object
@@ -172,7 +173,7 @@ class Dijkstra(bfs):  # searching algorithm object
         super().__init__(retrieve_goal_node)
 
 
-    def search(self, state_init, state_goal, robot_, map_):
+    def search(self, state_init, state_goal, robot_, map_, filepath=None):
         """
         Dijkstra searching
         :param state_init: initial state
@@ -211,7 +212,7 @@ class Dijkstra(bfs):  # searching algorithm object
             if node_cur == node_goal:           # reach a goal
                 print('find the solution')
                 if self.retrieve_goal_node:     # show optimal path
-                    self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
+                    self.retrievePath(node_cur, img=visited, filename=filepath)
                 return node_cur
             else:
                 if debug_nodeinfo:
@@ -238,8 +239,7 @@ class Astart(bfs):
     def __init__(self, retrieve_goal_node=False):
         super().__init__(retrieve_goal_node)
 
-
-    def search(self, state_init, state_goal, robot_, map_):
+    def search(self, state_init, state_goal, robot_, map_, filepath=None):
         """
         A* searching
         :param state_init: initial state
@@ -281,7 +281,7 @@ class Astart(bfs):
             node_cur = pop_min(nodes_)      # take the node with smallest heuristic from list
             if node_cur == node_goal:           # reach a goal
                 if self.retrieve_goal_node:     # show optimal path
-                    self.retrievePath(node_cur, img=visited, filename="results/optimalPath.txt")
+                    self.retrievePath(node_cur, img=visited, filename=filepath)
                 return node_cur
             else:
                 if debug_nodeinfo:

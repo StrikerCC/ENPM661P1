@@ -64,17 +64,18 @@ def main():
         print("start location or goal location", start_x, start_y, goal_x, goal_y, type(start_x), " in obstacle, please re-enter")
 
     """test a simply case"""
-    start = (25, 70)
-    goal = (25, 108)
+    start = (25, 35)
+    goal = (65, 35)
 
     """show map"""
     # map_.show()
-    print('robot start from valid are? ', map_.invalidArea(robot_.teleport(start)), map_.invalidArea(robot_.teleport(goal)))
+    if map_.invalidArea(robot_.teleport([start_x, start_y])) or map_.invalidArea(robot_.teleport([goal_x, goal_y])):
+        print("start location and goal location is ok")
 
     """planing"""
     robot_.teleport(start)
-    planning = Dijkstra()
-    planning.search(start, goal, robot_, map_)
+    planning = Dijkstra(retrieve_goal_node=True)
+    planning.search(start, goal, robot_, map_, filepath=r'resuts/output.txt')
 
 
 if __name__ == '__main__':
