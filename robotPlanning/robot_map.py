@@ -2,6 +2,7 @@ import math
 from shapely.geometry import Point, Polygon
 import numpy as np
 import cv2
+import copy
 
 from robotPlanning.robot import robot, point_robot, rigid_robot
 
@@ -35,16 +36,21 @@ class geometry():
 class map2D:
     def __init__(self, height=300, width=400):
         self.size = (height, width)
+        self.shape = self.size
+
+    # def getshape(self):
+    #     return self.size
 
     def invalidArea(self, robot_):
-        if isinstance(robot_, robot):
-            return 0 < robot_.loc()[0] < self.size[0] and 0 < robot_.loc()[1] < self.size[1]
-        elif isinstance(robot_, point_robot):
-            return 0 < robot_.loc()[0] < self.size[0] and 0 < robot_.loc()[1] < self.size[1]
+        loc = robot_.loc()[0:2]  # using location only
+        if isinstance(robot_, point_robot):
+            return 0 < loc[0] < self.size[0] and 0 < loc[1] < self.size[1]
         elif isinstance(robot_, rigid_robot):
-            return 0 < robot_.loc()[0] - robot_.clearance() and robot_.loc()[0] + robot_.clearance() < self.size[0] and 0 < robot_.loc()[1] - robot_.clearance() and robot_.loc()[1] + robot_.clearance() < self.size[1]
+            return 0 < loc[0] - robot_.radius and loc[0] + robot_.radius < self.size[0] and 0 < loc[1] - robot_.radius and loc[1] + robot_.radius < self.size[1]
+        elif isinstance(robot_, robot):
+            return 0 < loc[0] < self.size[0] and 0 < loc[1] < self.size[1]
         else:
-            AssertionError('unknown type of robot for map class')
+            raise AssertionError('unknown type of robot for map class')
 
 
 class map2DWithObstacle(map2D):
@@ -54,15 +60,16 @@ class map2DWithObstacle(map2D):
         self.map_obstacle = np.zeros(self.size, dtype=np.bool)  # mask obstacle in map. 1 is free space, 0 is obstacle
 
     def invalidArea(self, robot_):
-        if isinstance(robot_, robot):
-            return super().invalidArea(robot_) and not self.map_obstacle[robot_.loc()]
-        elif isinstance(robot_, point_robot):
-            return super().invalidArea(robot_) and not self.map_obstacle[robot_.loc()]
-        elif isinstance(robot_, rigid_robot):
+        loc = tuple(robot_.loc()[0:2])     # using location only
+        if isinstance(robot_, rigid_robot):
             Warning('using map without clearance to navigate rigid robot')
-            return super().invalidArea(robot_) and not self.map_obstacle[robot_.loc()]
+            return super().invalidArea(robot_) and not self.map_obstacle[loc]
+        elif isinstance(robot_, point_robot):
+            return super().invalidArea(robot_) and not self.map_obstacle[loc]
+        elif isinstance(robot_, robot):
+            return super().invalidArea(robot_) and not self.map_obstacle[loc]
         else:
-            AssertionError('unknown type of robot for map class')
+            raise AssertionError('unknown type of robot for map class')
 
     def isfree(self, index):
         index = index if isinstance(index, tuple) else tuple(index)
@@ -151,7 +158,7 @@ class map2DWithObstacle(map2D):
                 robot_in_map = map_2D_with_robot.get_map_obstacle()  # boolean mask representation of robot occupy map space, using numpy array, True if occupied, False if not
                 img[robot_in_map] = 255     # robot space as 255
             else:
-                AssertionError('unknown type of robot for map class')
+                raise AssertionError('unknown type of robot for map class')
 
         # draw each obstacle on display window
         img = cv2.flip(img, 0)
@@ -171,15 +178,16 @@ class map2DWithObstacleAndClearance(map2DWithObstacle):
         self.clearance = clearance
 
     def invalidArea(self, robot_):
-        if isinstance(robot_, robot):
-            return super().invalidArea(robot_) and not self.map_obstacle_expand[robot_.loc()]
-        elif isinstance(robot_, point_robot):
-            return super().invalidArea(robot_) and not self.map_obstacle_expand[robot_.loc()]
-        elif isinstance(robot_, rigid_robot):
+        loc = robot_.loc()[0:2]  # using location only
+        if isinstance(robot_, rigid_robot):
             Warning('using map without clearance to navigate rigid robot')
-            return super().invalidArea(robot_) and not self.map_obstacle_expand[robot_.loc()]
+            return super().invalidArea(robot_) and not self.map_obstacle_expand[loc]
+        elif isinstance(robot_, point_robot):
+            return super().invalidArea(robot_) and not self.map_obstacle_expand[loc]
+        elif isinstance(robot_, robot):
+            return super().invalidArea(robot_) and not self.map_obstacle_expand[loc]
         else:
-            AssertionError('unknown type of robot for map class')
+            raise AssertionError('unknown type of robot for map class')
 
     def add_rectangle_obstacle(self, corner_ll, width, height, angle, expand=False):
         # self.obstacles.append({'type': 'rectangle', 'corner_ll': corner_ll, 'width': width, 'height': height, 'angle': angle})

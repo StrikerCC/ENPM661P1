@@ -19,14 +19,12 @@ def main():
     print('map size is', map_.size)
 
     """ask user type of robt"""
-    robot_ = robot()
+    robot_ = point_robot()
     while True and flag_ui:
         choice = input('type of robot? 1: point_robot, 2: rigid_robot with clearance?')
         if choice == '1':
-            robot_ = point_robot()
             break
         elif choice == '2':
-            robot_ = rigid_robot()
             clearance = -1
             while clearance < 1 or clearance > 25:
                 clearance = int(input('please enter clearance of the rigid robot, between 1 and 25'))
@@ -64,8 +62,8 @@ def main():
         print("start location or goal location", start_x, start_y, goal_x, goal_y, type(start_x), " in obstacle, please re-enter")
 
     """test a simply case"""
-    start = (25, 35)
-    goal = (65, 35)
+    # start = (25, 35)
+    # goal = (65, 35)
 
     """show map"""
     # map_.show()
