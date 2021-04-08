@@ -43,6 +43,17 @@ class node_heuristic(node):
         self.heuristic = heuristic
 
     def expand(self, robot_, map_, cost_togoal=None):
+        """
+        produce a list of child node form this node, filtered by search space, such as obstacle, boundary
+        :param robot_: robot to move
+        :type robot_: robot or it's subclass
+        :param map_: search space
+        :type map_: map
+        :param cost_togoal: cost form each point in search space to goal location
+        :type cost_togoal: np.array
+        :return: a list of child node form this node
+        :rtype: list
+        """
         state = self.state
         loc = tuple(state.astype(int)[0:2])
         costtogo = cost_togoal[loc]

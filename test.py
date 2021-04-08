@@ -26,22 +26,12 @@ def test():
     goal = [90, 90, 0]
     start_ = np.array(start)
 
-    # start = (25, 35)
-    # goal = (205, 105)
-
-    # goal = [150, 108]
-    # robot_ = rigid_robot(start, radius=20, step_min=10, step_max=100, step_resolution=10)
-    robot_ = rigid_robot(start)
-
-    # next_ = robot_.next_moves_virtual(start_)
-
-    # plot(start_, next_)
-    # print(next_)
+    robot_ = rigid_robot(start, radius=10)
 
 
     ### testing obstacle
-    map_ = map2DWithObstacle()
-    # map_.add_circular_obstacle((90, 70), 70 / 2)
+    map_ = map2DWithObstacleAndClearance(clearance=20)
+    map_.add_circular_obstacle((90, 70), 70 / 2)
 
     # map_.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
     # map_.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),

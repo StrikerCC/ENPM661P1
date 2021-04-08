@@ -181,9 +181,9 @@ class Dijkstra(bfs):  # searching algorithm object
 class Astart(bfs):
     def __init__(self, retrieve_goal_node=False):
         super().__init__(retrieve_goal_node)
-        self.color_obstacle = (255, 255, 255)
-        self.color_visited = (50, 50, 50)
-        self.color_edge = (0, 0, 255)
+        self.color_obstacle = (0, 0, 255)
+        self.color_visited = (255, 0, 0)
+        self.color_edge = (0, 255, 0)
 
     def search(self, state_init, state_goal, robot_, map_, filepath=None):
         """
@@ -217,6 +217,7 @@ class Astart(bfs):
         nodes_ = [node_start]  # min priority queue of node, priority is heuristics
 
         i = 0
+        loc_last = tuple(node_start.get_state().astype(int)[0:2])
         while nodes_:  # as long as stack is not empty, keep dfs
             i += 1
             if i % 500 == 0:
@@ -243,11 +244,14 @@ class Astart(bfs):
                     if visited[loc_child] == False:      # this child represent a new state
                         visited[loc_child] = True     # mark visited as 155
                         nodes_.append(child)
-                        state_map_search = cv2.line(state_map_search, loc_cur[::-1], loc_child[::-1], color=self.color_edge, thickness=2)     # update state map
                     else:   # this is a visited not expanded node
                         for node_ in nodes_:  # find the node in list
                             if child == node_:  # find a repeated node , update its heuristic
                                 node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
+            if debug_showmap:
+                state_map_search = cv2.line(state_map_search, loc_last[::-1], loc_cur[::-1], color=self.color_edge,
+                                        thickness=2)  # update state map
+                loc_last = loc_cur
 
         # couldn't find a valid solution
         print("run out of nodes")
