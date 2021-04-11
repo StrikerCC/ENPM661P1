@@ -1,10 +1,10 @@
 import numpy as np
-# from robotPlanning.robot import robot, point_robot, rigid_robot
+# from utils.robot import robot, point_robot, rigid_robot
 # import queue
 import cv2
 import copy
 
-from robotPlanning.nodes import node, node_heuristic
+from utils.nodes import node, nodeHeuristic
 
 debug_showmap = True
 debug_nodeinfo = False
@@ -26,7 +26,7 @@ class bfs:  # searching algorithm object
         :type state_goal:
         :param robot_: robot type
         :type robot_:
-        :param map_: graph of robotPlanning field
+        :param map_: graph of utils field
         :type map_:
         :return:
         :rtype:
@@ -102,7 +102,8 @@ class bfs:  # searching algorithm object
             # show found path
             # if show:
             for i, node_ in enumerate(path):
-                img[tuple(node_.state)] = 100
+                loc = tuple(node_.get_state().astype(int)[0:2])
+                img[loc] = 255
                 cv2.imshow('highlight optimal path', cv2.flip(img, 0))
                 if i == len(path)-1:
                     cv2.waitKey(0)
@@ -125,7 +126,7 @@ class Dijkstra(bfs):  # searching algorithm object
         :type state_goal:
         :param robot_: robot type
         :type robot_:
-        :param map_: graph of robotPlanning field
+        :param map_: graph of utils field
         :type map_:
         :return:
         :rtype:
@@ -138,8 +139,8 @@ class Dijkstra(bfs):  # searching algorithm object
             return
 
         # initialize control variables for searching
-        node_start = node_heuristic(state_init, heuristic=0)    # start node
-        node_goal = node_heuristic(state_goal, heuristic=0)     # goal node
+        node_start = nodeHeuristic(state_init, heuristic=0)    # start node
+        node_goal = nodeHeuristic(state_goal, heuristic=0)     # goal node
         visited = np.zeros(map_.size, dtype=np.uint8)           # map mask of visited node
         visited[map_.get_map_obstacle()] = 75                   # mark obstacle as 75
 
@@ -194,8 +195,8 @@ class Astart(bfs):
         :type state_goal: tuple or list
         :param robot_: robot type
         :type robot_:
-        :param map_: graph of robotPlanning field
-        :type map_: map or mapWithObstacle from robotPlanning moduel
+        :param map_: graph of utils field
+        :type map_: map or mapWithObstacle from utils moduel
         :return:
         :rtype:
         """
@@ -207,9 +208,9 @@ class Astart(bfs):
             return
 
         # initialize control variables for searching
-        node_start = node_heuristic(state_init, heuristic=0)    # start node
-        node_goal = node_heuristic(state_goal, heuristic=0)     # goal node
-        cost_to_goal = self.initialzie_map_cost_to_goal(state_goal[0:2], map_)      # initialize a cost function from point on map to goal
+        node_start = nodeHeuristic(state_init, heuristic=0)    # start node
+        node_goal = nodeHeuristic(state_goal, heuristic=0)     # goal node
+        cost_to_goal = self.__initialzie_map_cost_to_goal__(state_goal[0:2], map_)      # initialize a cost function from point on map to goal
         visited = np.zeros(map_.size, dtype=bool)           # map mask of visited node
         visited[map_.get_map_obstacle()] = True             # mark obstacle as 75
         map_goal = self.__initialzie_map_reach_goal__(state_goal, tolerance=5, size=map_.shape)
@@ -227,7 +228,7 @@ class Astart(bfs):
             loc_cur = tuple(node_cur.get_state().astype(int)[0:2])
             if map_goal[loc_cur]:           # reach a goal
                 if self.retrieve_goal_node:     # show optimal path
-                    self.retrievePath(node_cur, img=visited, filename=filepath)
+                    self.retrievePath(node_cur, img=state_map_search, filename=filepath)
                 return node_cur
             else:
                 if debug_nodeinfo:
@@ -244,26 +245,26 @@ class Astart(bfs):
                     if visited[loc_child] == False:      # this child represent a new state
                         visited[loc_child] = True     # mark visited as 155
                         nodes_.append(child)
-                    else:   # this is a visited not expanded node
-                        for node_ in nodes_:  # find the node in list
-                            if child == node_:  # find a repeated node , update its heuristic
-                                node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
+                    # else:   # this is a visited not expanded node
+                    #     for node_ in nodes_:  # find the node in list
+                    #         if child == node_:  # find a repeated node , update its heuristic
+                    #             node_.update_heuristic(min(node_.get_heuristic(), child.get_heuristic()))
             if debug_showmap:
-                state_map_search = cv2.line(state_map_search, loc_last[::-1], loc_cur[::-1], color=self.color_edge,
-                                        thickness=2)  # update state map
+                # state_map_search = cv2.line(state_map_search, loc_last[::-1], loc_cur[::-1], color=self.color_edge,
+                #                         thickness=2)  # update state map
                 loc_last = loc_cur
 
         # couldn't find a valid solution
-        print("run out of nodes")
+        print("run out of nodes, couldn't find a solution")
         return None
 
-    def initialzie_map_cost_to_goal(self, state_goal, map_):
+    def __initialzie_map_cost_to_goal__(self, state_goal, map_):
         """
         make a map of cost to goal
         :param state_goal: where you wanna go
         :type state_goal: tuple or list
         :param map_: map that contain map info
-        :type map_: map or mapWithObstacle from robotPlanning moduel
+        :type map_: map or mapWithObstacle from utils moduel
         :return: a map of cost to goal location
         :rtype: np.array
         """
@@ -299,7 +300,7 @@ def dis_to_point(point, map_):
             if not obstacle[i, j]:  # point not in obstacle
                 point_map = np.array((i, j))
                 dis_to_goal[i, j] = np.linalg.norm(point_map-point_np)
-    # print(np.round(dis_to_goal, decimals=2))
+    print(np.round(dis_to_goal, decimals=2))
     return dis_to_goal
 
 

@@ -3,9 +3,9 @@ import math
 import random
 import numpy as np
 
-from robotPlanning.robot_map import map2DWithObstacle, map2DWithObstacleAndClearance
-from robotPlanning.planning import bfs, Dijkstra, Astart
-from robotPlanning.robot import robot, point_robot, rigid_robot
+from utils.space import space2DWithObstacle, space2DWithObstacleAndClearance
+from utils.planning import bfs, Dijkstra, Astart
+from utils.robot import robot, point_robot, rigid_robot
 
 
 flag_ui = True
@@ -15,7 +15,7 @@ def main():
     print("Game start")
 
     """initialize map"""
-    map_ = map2DWithObstacle()
+    map_ = space2DWithObstacle()
     print('map size is', map_.size)
 
     """ask user type of robt"""
@@ -28,7 +28,7 @@ def main():
             clearance = -1
             while clearance < 1 or clearance > 25:
                 clearance = int(input('please enter clearance of the rigid robot, between 1 and 25'))
-            map_ = map2DWithObstacleAndClearance(clearance=clearance)
+            map_ = space2DWithObstacleAndClearance(clearance=clearance)
             break
         else:
             print('invalid input, please re-enter')

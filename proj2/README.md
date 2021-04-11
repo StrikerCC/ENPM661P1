@@ -1,7 +1,5 @@
 # ENPM661P2
 BFS for point robot
-# ENPM661P1
-puzzle challenge  
 
 # library 
 To import required library, first import numpy to store the digits in a 2d-array.  

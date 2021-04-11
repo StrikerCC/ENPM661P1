@@ -1,13 +1,17 @@
 # ENPM661P1
-puzzle challenge  
+Project 1: puzzle challenge  
 
 # library 
-To import required library, first import numpy to store the digits in a 2d-array.  
+import the following package:
+
+`import numpy as np`
+numpy to store the digits in a 2d-array.  
+
+`from search import node, bfs, puzzle15`
 then from search import puzzle15, bfs.  
 puzzle15 class give user UI to play with puzzle game.  
 node class store state puzzle, and generate children node  
 search class search goal node based on given initial node  
-`from search import node, bfs, puzzle15`  
 
 # Instructions to run the code
 First create initial state and goal state as a 2d list.  

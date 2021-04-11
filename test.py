@@ -1,9 +1,9 @@
 import sys
 import math
 
-from robotPlanning.robot import robot, point_robot, rigid_robot
-from robotPlanning.planning import bfs, Dijkstra, Astart, dis_to_point
-from robotPlanning.robot_map import map2DWithObstacle, map2DWithObstacleAndClearance
+from utils.robot import robot, point_robot, rigid_robot
+from utils.planning import bfs, Dijkstra, Astart, dis_to_point
+from utils.space import space2DWithObstacle, space2DWithObstacleAndClearance
 import numpy as np
 import cv2
 from shapely.geometry import Point, Polygon
@@ -22,33 +22,29 @@ def plot(start, ends):
 
 def test():
 
-    start = [50.0, 40.0, math.pi/2]
-    goal = [90, 90, 0]
+    start = [10.0, 10.0, math.pi/2]
+    goal = [220, 290, 0]
     start_ = np.array(start)
 
-    robot_ = rigid_robot(start, radius=10)
+    robot_ = rigid_robot(start, radius=5)
 
 
     ### testing obstacle
-    map_ = map2DWithObstacleAndClearance(clearance=20)
-    map_.add_circular_obstacle((90, 70), 70 / 2)
+    map_ = space2DWithObstacleAndClearance(clearance=10)
 
-    # map_.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
-    # map_.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),
-    #                            (210, 270), (230, 270), (230, 280), (200, 280)])
-    # map_.add_ellipsoid_obstacle((246, 145), 60 / 2, 120 / 2)
-    # map_.show()
+    map_.add_circular_obstacle((50, 50), 20 / 2)
 
-    # map_0 = map2DWithObstacleAndClearance()
-    # map_0.add_circular_obstacle((90, 70), 70 / 2)
-    # map_0.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
-    # map_0.show()
+    map_.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
+    map_.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),
+                               (210, 270), (230, 270), (230, 280), (200, 280)])
+    map_.add_ellipsoid_obstacle((246, 145), 60 / 2, 120 / 2)
+    map_.show()
 
+    map_0 = space2DWithObstacleAndClearance()
+    map_0.add_circular_obstacle((90, 70), 70 / 2)
+    map_0.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
+    map_0.show()
 
-
-    # print(map_.invalidArea(robot_))
-    #
-    # # slover = bfs()
     slover = Astart()
 
     goal_node = slover.search(start, goal, robot_, map_)
@@ -56,17 +52,14 @@ def test():
 
 
 if __name__ == '__main__':
-    ass = np.arange(0, 10)
-    print(ass.shape)
-    # ass = ass.reshape((2, -1))
-    print(ass.shape == (10,))
+    a = (0.0, 0.1)
+    b = [0.0, 1.1]
+    c = np.array([0.5, 1.1])
 
-    k = (0.5, 2.1)
-    print(k)
-    # k = tuple(map(eval, k))
-    print(k)
+    print(tuple(a))
+    print(tuple(b))
+    print(tuple(c))
 
-
-    test()
+    # test()
     # dis = np.linalg.norm(a-b)
     # print(dis)

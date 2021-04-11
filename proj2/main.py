@@ -24,9 +24,9 @@ def main():
     graph_.add_ellipsoid_obstacle((246, 145), 60/2, 120/2)
     # graph_.show()
 
-    # testing robotPlanning object
-    # robotPlanning = node_point_robot((0, 0))
-    # children = robotPlanning.children(robotPlanning, graph_)
+    # testing utils object
+    # utils = node_point_robot((0, 0))
+    # children = utils.children(utils, graph_)
     # for child in children:
     #     print(child)
     planning = bfs(graph_)

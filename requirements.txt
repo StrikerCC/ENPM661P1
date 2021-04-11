@@ -1,0 +1,8 @@
+certifi==2020.12.5
+mkl-fft==1.3.0
+mkl-random==1.1.1
+mkl-service==2.3.0
+numpy @ file:///C:/ci/numpy_and_numpy_base_1603466732592/work
+Shapely==1.7.1
+six @ file:///C:/ci/six_1605187374963/work
+wincertstore==0.2

@@ -146,7 +146,7 @@ class rigid_robot(robot):
         state_next = []
         dises_next = []
         for turn in np.arange(-self.angle_turn_max, self.angle_turn_max+self.angel_turn_resolution, self.angel_turn_resolution):
-            for step in np.arange(self.step_min, self.step_max, self.step_resolution):
+            for step in np.arange(self.step_max, self.step_min, -self.step_resolution):
                 state_copy = np.copy(state)
                 state_next.append(rigid_robot.move_virtual(self, state=state_copy, step=step, theta=turn))
                 dises_next.append(step)

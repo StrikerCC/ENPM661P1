@@ -3,9 +3,9 @@ import math
 import random
 import numpy as np
 
-from robotPlanning.robot_map import map2DWithObstacle, map2DWithObstacleAndClearance
-from robotPlanning.planning import bfs, Dijkstra, Astart
-from robotPlanning.robot import robot, point_robot, rigid_robot
+from utils.space import space2DWithObstacle, space2DWithObstacleAndClearance
+from utils.planning import bfs, Dijkstra, Astart
+from utils.robot import robot, point_robot, rigid_robot
 
 
 flag_ui = True
@@ -15,7 +15,7 @@ def main():
     print("Game start")
 
     """initialize map"""
-    map_ = map2DWithObstacle()
+    map_ = space2DWithObstacle()
     print('map size is', map_.size)
 
     """ask user type of robt"""
@@ -29,7 +29,7 @@ def main():
             clearance = -1
             while clearance < 1 or clearance > 25:
                 clearance = int(input('please enter clearance of the rigid robot, between 1 and 25'))
-            map_ = map2DWithObstacleAndClearance(clearance=clearance+radius_robot)
+            map_ = space2DWithObstacleAndClearance(clearance=clearance + radius_robot)
             break
         else:
             print('invalid input, please re-enter')
@@ -44,10 +44,12 @@ def main():
 
     """ask user coordinates of start and goal"""
     start_x, start_y, goal_x, goal_y = 0, 0, 0, 0
+    angle_start, angle_end = 0 , 0
     while True and flag_ui:
         choice = input('random? y/n?')
         if choice.lower() == 'y':
             start_x, start_y, goal_x, goal_y = random.randint(1, 500), random.randint(1, 300), random.randint(1, 500), random.randint(1, 300)
+            angle_start, angle_end = random.randint(0, 100) / 100 * math.pi, random.randint(0, 100) / 100 * math.pi
             # break
         elif choice.lower() == 'n':
             start_x, start_y, goal_x, goal_y = int(input("x coordinate of start")), \
@@ -57,14 +59,14 @@ def main():
             # break
         else:
             print('invalid input, please re-enter')
-        if map_.invalidArea(robot_.teleport([start_x, start_y])) or map_.invalidArea(robot_.teleport([goal_x, goal_y])):
+        if map_.invalidArea(robot_.teleport([start_x, start_y, angle_start])) or map_.invalidArea(robot_.teleport([goal_x, goal_y, angle_end])):
             print("start location and goal location is ok")
             break
         print("start location or goal location", start_x, start_y, goal_x, goal_y, type(start_x), " in obstacle, please re-enter")
 
     """test a simply case"""
-    # start = (25, 35)
-    # goal = (65, 35)
+    start = (25, 35, 0)
+    goal = (155, 300, 0)
 
     """show map"""
     # map_.show()
@@ -73,8 +75,8 @@ def main():
 
     """planing"""
     robot_.teleport(start)
-    planning = Dijkstra(retrieve_goal_node=True)
-    planning.search(start, goal, robot_, map_, filepath=r'resuts/output.txt')
+    planning = Astart(retrieve_goal_node=True)
+    planning.search(start, goal, robot_, map_, filepath=r'results/output.txt')
 
 
 if __name__ == '__main__':

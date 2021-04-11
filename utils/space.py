@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import copy
 
-from robotPlanning.robot import robot, point_robot, rigid_robot
+from utils.robot import robot, point_robot, rigid_robot
 
 
 class geometry():
@@ -33,7 +33,7 @@ class geometry():
         return self.shape_name + ' ' + str(self.size)
 
 
-class map2D:
+class space2D:
     def __init__(self, height=300, width=400):
         self.size = (height, width)
         self.shape = self.size
@@ -53,7 +53,7 @@ class map2D:
             raise AssertionError('unknown type of robot for map class')
 
 
-class map2DWithObstacle(map2D):
+class space2DWithObstacle(space2D):
     def __init__(self, height=300, width=400):
         super().__init__(height, width)
         self.obstacles = []
@@ -153,7 +153,7 @@ class map2DWithObstacle(map2D):
             elif isinstance(robot_, rigid_robot):
                 Warning('using map without clearance to navigate rigid robot')
 
-                map_2D_with_robot = map2DWithObstacle(self.size[0], self.size[1])            # make a robot map based on obstacle map
+                map_2D_with_robot = space2DWithObstacle(self.size[0], self.size[1])            # make a robot map based on obstacle map
                 map_2D_with_robot.add_circular_obstacle(robot_.loc(), robot_.clearance())       # treat robot as a obstacle
                 robot_in_map = map_2D_with_robot.get_map_obstacle()  # boolean mask representation of robot occupy map space, using numpy array, True if occupied, False if not
                 img[robot_in_map] = 255     # robot space as 255
@@ -170,7 +170,7 @@ class map2DWithObstacle(map2D):
             return
 
 
-class map2DWithObstacleAndClearance(map2DWithObstacle):
+class space2DWithObstacleAndClearance(space2DWithObstacle):
     def __init__(self, height=300, width=400, clearance=20):
         # self.obstacles = []
         super().__init__(height, width)
@@ -224,26 +224,3 @@ class map2DWithObstacleAndClearance(map2DWithObstacle):
         cv2.imshow('obstacle', self.numpy_array_representation(self.map_obstacle_expand, robot_))
         if cv2.waitKey(0) & 0xFF == ord('q'):
             return
-
-    # def expand(self, name, parameters, clearance):
-    #     if name == 'rectangle':
-    #         corner_ll, width, height, angle = parameters
-    #         angle_diag_horizontal = 0   # angle between horizontal axis and
-    #
-    #     elif name == 'polygon':
-    #         assert isinstance(parameters, list)
-    #         # normalize points coordinates
-    #         points = parameters
-    #         points_np = np.array(points)
-    #
-    #         # scale points coordinates
-    #         centroid = np.mean(points_np)   # use centroid as scale center
-    #         mapping = np.array([[]])
-    #     elif name == 'circular':
-    #         return parameters + clearance
-    #     elif name == 'ellipsoid':
-    #         semi_major_axis, semi_minor_axis = parameters
-    #         return semi_major_axis+clearance, semi_minor_axis+clearance
-    #     else:
-    #         AttributeError('no such shape', name, ' in class', self.__class__)
-
