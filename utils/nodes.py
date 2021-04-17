@@ -11,7 +11,7 @@ class node:
         :type parent: node
         """
         assert isinstance(state, tuple) or isinstance(state, list) or isinstance(state, np.ndarray)
-        assert isinstance(state[0], int)
+        # assert isinstance(state[0], int) or isinstance(state[0], np.int), str(state) + str(type(state[0]))
         self.state = tuple(state)
         self._parent = parent
 
@@ -35,9 +35,10 @@ class node:
         state = self.state  # current node state
         loc = state[0:2]    # current node location
 
-        assert isinstance(loc, int)
+        # assert isinstance(loc[0], int)
         states_next, dises_move = robot_.next_moves_virtual(self.state)
         for state_next, dis_move in zip(states_next, dises_move):  # get a list of possible next move
+            state_next = tuple(state_next)
             loc_next = state_next[0:2]
             if space.invalidArea(robot_.teleport(state_next)):  # filter the next possible move by space and obstacle
                 children.append(node(state_next, parent=self))
@@ -50,9 +51,8 @@ class node:
 
     def __eq__(self, another):
         assert isinstance(another, node)
-        assert self.state.dtype == another.state.dtype, 'class state type ' + str(
-            self.state.dtype) + ' not comparable with input state type' + str(another.state.dtype)
-        return np.alltrue(self.state == another.state)
+        # assert type(self.state[0]) == type(another.state[0]), 'class state type ' + str(type(self.state[0])) + ' not comparable with input state type' + str(type(another.state[0]))
+        return self.state == another.state
 
 
 
@@ -86,7 +86,7 @@ class nodeHeuristic(node):
         :return: a list of nodes that current node can really expand
         :rtype: list
         """
-        assert isinstance(map_visited, np.ndarray) and len(map_visited.shape) == 3
+        assert isinstance(map_visited, np.ndarray) and len(map_visited.shape) == 3, map_visited
         assert isinstance(map_cost_to_here, np.ndarray) and len(map_cost_to_here.shape) == 3
         assert isinstance(map_cost_to_goal, np.ndarray) and len(map_cost_to_goal.shape) == 3
 

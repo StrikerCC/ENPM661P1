@@ -56,7 +56,8 @@ if __name__ == '__main__':
     b = [0.0, 1.1]
     c = np.array([0.5, 1.1])
 
-    print(tuple(a))
+    print(a == b)
+    print(a == (0.0, 0.1))
     print(tuple(b))
     print(tuple(c))
 

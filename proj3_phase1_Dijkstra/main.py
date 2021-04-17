@@ -62,8 +62,8 @@ def main():
         print("start location or goal location", start_x, start_y, goal_x, goal_y, type(start_x), " in obstacle, please re-enter")
 
     """test a simply case"""
-    # start = (25, 35)
-    # goal = (65, 35)
+    start = (25, 35)
+    goal = (65, 35)
 
     """show map"""
     # map_.show()

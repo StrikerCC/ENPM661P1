@@ -3,6 +3,7 @@ import numpy as np
 # import queue
 import cv2
 import copy
+import datetime
 
 from utils.nodes import node, nodeHeuristic
 
@@ -33,16 +34,17 @@ class bfs:  # searching algorithm object
         """
 
         # make sure initial and goal state is not in obstacle
-        robot_.teleport(state_init)
-        if not map_.invalidArea(robot_):
-            print("start location or goal location in or too close to obstacle", state_init, state_goal)
-            return
+        # robot_.teleport(state_init)
+        # if not map_.invalidArea(robot_):
+        #     print("start location or goal location in or too close to obstacle", state_init, state_goal)
+        #     return
 
         # initialize control variables for searching
         node_start = node(state_init)  # start node
         node_goal = node(state_goal)  # goal node
         visited = np.zeros(map_.size, dtype=np.uint8)  # map mask of visited node
         visited[map_.get_map_obstacle()] = 75   # mark obstacle as 75
+        visited[state_goal] = 255   # mark goal as 255
         breath = [node_start]  # min priority queue of node, priority is heuristics
 
         i = 0
@@ -63,9 +65,9 @@ class bfs:  # searching algorithm object
                     cv2.imshow('highlight explored', cv2.flip(visited, 0))
                     cv2.waitKey(1)
 
-                children = node_cur.expand(robot_, map_)  # children expanded from this node
+                children, _ = node_cur.expand(robot_, map_)  # children expanded from this node
                 for child in children:  # for each child
-                    if visited[child.get_state()] == 0:  # this child represent a new state never seen before
+                    if visited[child.get_state()] != 155 and visited[child.get_state()] != 75:  # this child represent a new state never seen before
                         visited[child.get_state()] = 155    # mark visited as 155
                         breath.append(child)
 
@@ -88,26 +90,31 @@ class bfs:  # searching algorithm object
                 print(i)
                 i += 1
                 path.append(node_cur)  # follow the convention to output matrix column wise
-                parent = node_cur.parent
+                parent = node_cur.get_parent()
                 node_cur = parent
             path.reverse()
 
             # save path to text file
-            first_line = 'index, node loc, heuristic\n'
+            first_line = 'time: ' + str(datetime.datetime) + 'index, node loc, heuristic\n'
             file.write(first_line)
             for i, node_ in enumerate(path):  # keep going until root
-                node_info = str(i) + ', (' + str(node_) + '), ' + str(node_.heuristic)
+                node_info = ''
+                if isinstance(node_, nodeHeuristic):
+                    node_info = str(i) + ', (' + str(node_) + '), ' + str(node_.heuristic)
+                else:
+                    node_info = str(i) + ', (' + str(node_)
                 file.write(node_info + '\n')  # follow the convention to output matrix column wise
 
             # show found path
             # if show:
             for i, node_ in enumerate(path):
-                loc = tuple(node_.get_state().astype(int)[0:2])
+                loc = tuple(node_.get_state()[0:2])
                 img[loc] = 255
                 cv2.imshow('highlight optimal path', cv2.flip(img, 0))
                 if i == len(path)-1:
                     cv2.waitKey(0)
                 else:   # hold on for user to input
+                    cv2.namedWindow('highlight optimal path', )
                     cv2.waitKey(10)
         return
 
