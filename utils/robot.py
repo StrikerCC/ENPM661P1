@@ -180,3 +180,61 @@ class rigid_robot(robot):
         state[2] += theta  # turn robot angle first
         state[0:-1] = state[0:-1] + step * np.array([np.cos(state[-1]), np.sin(state[-1])])
         return state
+
+class turtlebot(robot):
+    def __init__(self, state=None, dis_between_wheel=10, radius_robot=10, radius_wheel=1, rpms = (1, 2)):
+        super().__init__(state)
+        self.dis_between_wheel = dis_between_wheel
+        self.radius = radius_robot
+        self.vs = [2*np.pi*radius_wheel * rpm / 60.0 for rpm in rpms]   # convert epm to meters per second
+
+    def get_radius(self): return self.radius
+
+    def next_moves_virtual(self, state, time_step):
+        """
+        all possible location next move can go
+        :param state: current state of robot
+        :type state: numpy.ndarray
+        :return: a list of possible location of next move
+        :rtype: list
+        """
+        state_next = []
+        dises_next = []
+
+        theta = state[-1]
+        for v_left in self.vs:
+            for v_right in self.vs:
+                v_left, v_right = v_left, v_right
+                # convert to velocity in global coord system
+                v_x, v_y = self.radius/2 * (v_left + v_right) * np.cos(theta), self.radius/2 * (v_left + v_right) * np.sin(theta)
+                w = self.radius / self.dis_between_wheel * (v_right - v_left)
+                dis = np.sqrt(math.pow((v_x * time_step), 2) + math.pow((v_y * time_step), 2))
+                d_x, d_y, d_theta = v_x * time_step, v_y * time_step, w * time_step
+
+                # convert to next state
+                state_copy = np.copy(state)
+                state_next.append(turtlebot.move_virtual(self, state=state_copy, step=(d_x, d_y, d_theta))
+
+                dises_next.append(step)
+        return state_next, dises_next
+
+    def move(self, step, theta):
+        """
+        move rigid robot
+        :param step: step length
+        :type step: int or float
+        :param theta: angle to turn
+        :type theta: int or float
+        :return:
+        :rtype:
+        """
+        self.state[3] += theta  # turn robot angle first
+        self.state[0:-1] = self.state[0:-1] + step * np.array([np.cos(self.state[-1]), np.sin(self.state[-1])])
+
+    def move_virtual(self, state, step):
+        d_x, d_y, d_theta = step
+        state[2] += d_theta  # turn robot angle first
+        state[0:-1] = state[0:-1] + np.array(d_x, d_y)
+
+
+        return state
