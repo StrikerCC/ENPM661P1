@@ -12,11 +12,12 @@ class node:
         """
         assert isinstance(state, tuple) or isinstance(state, list) or isinstance(state, np.ndarray)
         # assert isinstance(state[0], int) or isinstance(state[0], np.int), str(state) + str(type(state[0]))
-        self.state = tuple(state)
+        self.state = state if isinstance(state, np.ndarray) else np.array(state)
         self._parent = parent
 
-    def get_state(self):
-        return self.state
+    def get_state(self): return np.copy(self.state)
+
+    def get_loc(self): return tuple(self.state[0:2].astype(int))
 
     def get_parent(self):
         return self._parent
@@ -26,24 +27,18 @@ class node:
         produce a list of child node form this node, filtered by search space, such as obstacle, boundary
         :param robot_: the robot that planning for
         :type robot_: robot
-        :param space: the space that planning for, should contain obstacle
-        :type space:
+        :param space:
         :return: a list of nodes that current node can really expand
         :rtype: list
         """
         children, cost_2_move = [], []   # children list to return
         state = self.state  # current node state
-        loc = state[0:2]    # current node location
 
         # assert isinstance(loc[0], int)
-        states_next, dises_move = robot_.next_moves_virtual(self.state)
-        for state_next, dis_move in zip(states_next, dises_move):  # get a list of possible next move
-            state_next = tuple(state_next)
-            loc_next = state_next[0:2]
-            if space.invalidArea(robot_.teleport(state_next)):  # filter the next possible move by space and obstacle
-                children.append(node(state_next, parent=self))
-                cost_2_move.append(dis_move)
-        return children, cost_2_move
+        states_next, dises_move = robot_.next_moves(self.state, space=space)     # get a list of possible next move
+        children = [node(state_next, parent=self) for state_next in states_next]
+
+        return children, dises_move
 
     # to string
     def __str__(self):
@@ -52,58 +47,46 @@ class node:
     def __eq__(self, another):
         assert isinstance(another, node)
         # assert type(self.state[0]) == type(another.state[0]), 'class state type ' + str(type(self.state[0])) + ' not comparable with input state type' + str(type(another.state[0]))
-        return self.state == another.state
-
+        return self.get_loc() == another.get_loc()
 
 
 class nodeHeuristic(node):
-    def __init__(self, state, heuristic, parent=None):
+    def __init__(self, state, cost_from_start, cost_to_goal=0, parent=None):
         super().__init__(state, parent)
-        self.heuristic = heuristic
+        self.cost_from_start = cost_from_start
+        self.cost_to_goal = cost_to_goal
+        self.heuristic = self.cost_to_goal + self.cost_from_start
+        self.parent = parent
 
     def get_heuristic(self):
         return self.heuristic
 
-    def update_heuristic(self, heuristic):
-        self.heuristic = heuristic
+    def update_heuristic(self, cost_from_start, cost_to_goal):
+        self.cost_from_start = cost_from_start
+        self.cost_to_goal = cost_to_goal
+        self.heuristic = self.cost_to_goal + self.cost_from_start
 
-    def expand(self, robot_, space, map_visited=None, map_heuristic_candidate=None, map_cost_to_here=None, map_cost_to_goal=None):
-        """
-        produce a list of child node form this node, filtered by search space, such as obstacle, boundary, then filtered
-        by settled or not
-        :param robot_: the robot that planning for
-        :type robot_: robot
-        :param space: the space that planning for, should contain obstacle
-        :type space:
-        :param map_visited: the numpy array that represent the visited node
-        :type map_visited: np.array
-        :param map_heuristic_candidate:
-        :type map_heuristic_candidate:
-        :param map_cost_to_here: min cost form start point to each point in search space, if not find yet
-        :type map_cost_to_here: np.array
-        :param map_cost_to_goal: cost form each point in search space to goal location
-        :type map_cost_to_goal: np.array
-        :return: a list of nodes that current node can really expand
-        :rtype: list
-        """
-        assert isinstance(map_visited, np.ndarray) and len(map_visited.shape) == 3, map_visited
-        assert isinstance(map_cost_to_here, np.ndarray) and len(map_cost_to_here.shape) == 3
-        assert isinstance(map_cost_to_goal, np.ndarray) and len(map_cost_to_goal.shape) == 3
+    def update_parent(self, node_):
+        self.parent = node_
 
-        """get a list of valid child, possible settled"""
+    def expand(self, robot_, space, costs_to_goal=None):
         children, distances = super().expand(robot_=robot_, space=space)
-        children_heuristic = []
-        """if not settled, assign each child with heuristic"""
-        loc_current = self.state[0:2]
-        for child, dis_from_current_2_child in zip(children, distances):  # get a list of possible next move
-            loc_child = child.get_state()[0:2]
-            if not map_visited[loc_child]:   # if shortest distance from this node is not determined
-                children_heuristic.append(__node_2_node_heuristic__(child, heuristic=min(map_heuristic_candidate[loc_child], map_cost_to_here[loc_current] + distances + map_cost_to_goal[loc_child])))
-            else:   # this node is visited before
-                if map_heuristic_candidate[loc_child] > map_cost_to_here[loc_current] + distances + map_cost_to_goal[loc_child]:
-                    children_heuristic.append(__node_2_node_heuristic__(child, heuristic=map_cost_to_here[loc_current] + distances + map_cost_to_goal[loc_child]))
-        """sort the candidates list"""
 
+        """change child from node to node with heuristic"""
+        for i, (child, dis) in enumerate(zip(children, distances)):
+            if costs_to_goal is not None:
+                child = nodeHeuristic(child.get_state(),
+                                      cost_from_start=self.cost_from_start + dis,
+                                      cost_to_goal=costs_to_goal[self.get_loc()],
+                                      parent=self)
+            else:
+                child = nodeHeuristic(child.get_state(),
+                                      cost_from_start=self.cost_from_start + dis,
+                                      cost_to_goal=0,
+                                      parent=self)
+            children[i] = child
+
+        if children: assert isinstance(children[0], self.__class__), children[0].__class__
         return children
 
     def __lt__(self, other):
@@ -118,5 +101,12 @@ class nodeHeuristic(node):
         return self.heuristic > another.heuristic
 
 
-def __node_2_node_heuristic__(node_, heuristic):
-    return nodeHeuristic(node_.get_state(), heuristic=heuristic, parent=node_.parent)
+def __node_2_node_heuristic__(node_, cost_from_start, cost_to_goal):
+    """
+    make a deep copy of nodeHeuristic
+    :param node_:
+    :param heuristic:
+    :return:
+    """
+    return nodeHeuristic(node_.get_state(), cost_from_start=cost_from_start, cost_to_goal=cost_to_goal, parent=node_.parent)
+

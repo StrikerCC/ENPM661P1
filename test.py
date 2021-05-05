@@ -52,14 +52,13 @@ def test():
 
 
 if __name__ == '__main__':
-    a = (0.0, 0.1)
-    b = [0.0, 1.1]
-    c = np.array([0.5, 1.1])
+    a_s = [i for i in range(10)]
+    b_s = [i for i in range(10)]
 
-    print(a == b)
-    print(a == (0.0, 0.1))
-    print(tuple(b))
-    print(tuple(c))
+    # for i, a, b in enumerate(a_s, b_s):
+    #     print(i, a, b)
+    for i, (a, b) in enumerate(zip(a_s, b_s)):
+        print(i, a, b)
 
     # test()
     # dis = np.linalg.norm(a-b)

@@ -42,7 +42,7 @@ class space2D:
     #     return self.size
 
     def invalidArea(self, robot_):
-        loc = robot_.loc()[0:2]  # using location only
+        loc = robot_.get_loc()   # using location only
         if isinstance(robot_, point_robot):
             return 0 < loc[0] < self.size[0] and 0 < loc[1] < self.size[1]
         elif isinstance(robot_, rigid_robot):
@@ -57,10 +57,10 @@ class space2DWithObstacle(space2D):
     def __init__(self, height=300, width=400):
         super().__init__(height, width)
         self.obstacles = []
-        self.map_obstacle = np.zeros(self.size, dtype=np.bool)  # mask obstacle in map. 1 is free space, 0 is obstacle
+        self.map_obstacle = np.zeros(self.size, dtype=bool)  # mask obstacle in map. 1 is free space, 0 is obstacle
 
     def invalidArea(self, robot_):
-        loc = tuple(robot_.loc()[0:2])     # using location only
+        loc = robot_.get_loc()     # using location only
         if isinstance(robot_, rigid_robot):
             Warning('using map without clearance to navigate rigid robot')
             return super().invalidArea(robot_) and not self.map_obstacle[loc]
@@ -147,14 +147,15 @@ class space2DWithObstacle(space2D):
         img[map_obstacle] = 75      # obstacle as 0
 
         if robot_:
+            loc_robot = robot_.get_loc()
             if isinstance(robot_, robot) and isinstance(robot_, point_robot):
-                img[robot_.loc()] = 255
+                img[loc_robot] = 255
                 # print('point ', robot_.loc())
             elif isinstance(robot_, rigid_robot):
                 Warning('using map without clearance to navigate rigid robot')
 
                 map_2D_with_robot = space2DWithObstacle(self.size[0], self.size[1])            # make a robot map based on obstacle map
-                map_2D_with_robot.add_circular_obstacle(robot_.loc(), robot_.clearance())       # treat robot as a obstacle
+                map_2D_with_robot.add_circular_obstacle(loc_robot, robot_.clearance())       # treat robot as a obstacle
                 robot_in_map = map_2D_with_robot.get_map_obstacle()  # boolean mask representation of robot occupy map space, using numpy array, True if occupied, False if not
                 img[robot_in_map] = 255     # robot space as 255
             else:
@@ -178,7 +179,7 @@ class space2DWithObstacleAndClearance(space2DWithObstacle):
         self.clearance = clearance
 
     def invalidArea(self, robot_):
-        loc = robot_.loc()[0:2]  # using location only
+        loc = robot_.get_loc()  # using location only
         if isinstance(robot_, rigid_robot):
             Warning('using map without clearance to navigate rigid robot')
             return super().invalidArea(robot_) and not self.map_obstacle_expand[loc]

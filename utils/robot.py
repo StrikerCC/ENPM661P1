@@ -4,17 +4,27 @@ import math
 
 debug = True
 
+robot_dimention = {'rigid': {'radius': 10
+                             },
+                   'turtlebot': {'radius': 5,
+                                 'len_between_wheel': 5,
+                                 'radius_wheel': 1,
+                                 'rpm': [10, 20]}
+                   }
 
 class robot:
     def __init__(self, state=None):
         self.state = None
         if isinstance(state, np.ndarray):
-            self.state = state
+            self.state = np.copy(state)
         elif isinstance(state, list):
             self.state = np.array(state)
 
-    def loc(self):
-        return tuple(self.state.astype(int))
+    def get_loc(self):
+        return tuple((self.state[0:2]).astype(int))
+
+    def get_state(self):
+        return np.copy(self.state)
 
     def teleport(self, state):
         if type(state) == np.ndarray:
@@ -23,7 +33,7 @@ class robot:
             assert len(state) == 2 or len(state) == 3, state
 
         if isinstance(state, np.ndarray):
-            self.state = state
+            self.state = np.copy(state)
         elif isinstance(state, list):
             self.state = np.array(state)
         elif isinstance(state, tuple):
@@ -80,9 +90,9 @@ class robot:
         return robot(copy.deepcopy(self.state))
 
     def __str__(self):
-        return str(self.loc())[1:-1]
+        return str(self.get_loc())[1:-1]
 
-    def next_moves_virtual(self, state):
+    def next_moves(self, state, space):
         """
         all possible location next move can go
         :param state: current state of robot
@@ -97,8 +107,9 @@ class robot:
                 dis = math.sqrt(x**2 + y**2)
                 move = np.array([x, y])
                 state_copy = np.copy(state) + move
-                states_next.append(state_copy)
-                dises_next.append(dis)
+                if space.invalidArea(self.teleport(state_copy)):    # if robot is ok at this state in the space
+                    states_next.append(state_copy)
+                    dises_next.append(dis)
         return states_next, dises_next
 
 
@@ -110,7 +121,10 @@ class point_robot(robot):
 
 
 class rigid_robot(robot):
-    def __init__(self, state=None, radius=0, step_resolution=1, step_min=1, step_max=10, angle_turn_min=0, angle_turn_max=math.pi/3, angel_turn_resolution=math.pi/6):
+    def __init__(self, state=None,
+                 radius=robot_dimention['rigid']['radius'], step_resolution=1,
+                 step_min=0.0, step_max=10.0,
+                 angle_turn_min=0.0, angle_turn_max=np.pi, angel_turn_resolution=np.pi/3):
         """
         a rigid robot with radius
         :param state: robot state [x, y, angle]
@@ -135,106 +149,100 @@ class rigid_robot(robot):
 
     def copy(self): return rigid_robot(state=copy.deepcopy(self.state), radius=self.radius, step_resolution=self.step_resolution, step_min=self.step_min, step_max=self.step_max, angle_turn_min=self.angle_turn_min, angle_turn_max=self.angle_turn_max, angel_turn_resolution=self.angel_turn_resolution/math.pi*180)
 
-    def next_moves_virtual(self, state):
+    def next_moves(self, state_cur, space):
         """
         all possible location next move can go
-        :param state: current state of robot
-        :type state: numpy.ndarray
+        :param state_cur: current state of robot
+        :type state_cur: numpy.ndarray
+        :param space: physical space of the robot
         :return: a list of possible location of next move
         :rtype: list
         """
         state_next = []
         dises_next = []
+
         for turn in np.arange(-self.angle_turn_max, self.angle_turn_max+self.angel_turn_resolution, self.angel_turn_resolution):
             for step in np.arange(self.step_max, self.step_min, -self.step_resolution):
-                state_copy = np.copy(state)
-                state_next.append(rigid_robot.move_virtual(self, state=state_copy, step=step, theta=turn))
-                dises_next.append(step)
+                self.teleport(state_cur)
+                self.move((step, turn))
+                if space.invalidArea(self):    # if robot is ok at this state in the space
+                    state_next.append(self.get_state())
+                    dises_next.append(0.5 * step)
         return state_next, dises_next
 
-    def move(self, step, theta):
+    def move(self, step):
         """
         move rigid robot
         :param step: step length
         :type step: int or float
-        :param theta: angle to turn
-        :type theta: int or float
         :return:
         :rtype:
         """
-        self.state[3] += theta  # turn robot angle first
+        self.state[-1] += step[-1]  # turn robot angle first
         self.state[0:-1] = self.state[0:-1] + step * np.array([np.cos(self.state[-1]), np.sin(self.state[-1])])
 
-    def move_virtual(self, state, step, theta):
-        """
-        move virtual state of a robot
-        :param state: virtual state
-        :type state: numpy array
-        :param step: step length
-        :type step: int or float
-        :param theta: angle to turn
-        :type theta: int or float
-        :return:
-        :rtype:
-        """
-        state[2] += theta  # turn robot angle first
-        state[0:-1] = state[0:-1] + step * np.array([np.cos(state[-1]), np.sin(state[-1])])
-        return state
 
 class turtlebot(robot):
-    def __init__(self, state=None, dis_between_wheel=10, radius_robot=10, radius_wheel=1, rpms = (1, 2)):
+    def __init__(self, state=None,
+                 dis_between_wheel=robot_dimention['turtlebot']['len_between_wheel'],
+                 radius_robot=robot_dimention['turtlebot']['radius'],
+                 radius_wheel=robot_dimention['turtlebot']['radius_wheel'],
+                 rpms=robot_dimention['turtlebot']['rpm']):
         super().__init__(state)
         self.dis_between_wheel = dis_between_wheel
         self.radius = radius_robot
+        self.radius_wheel = radius_wheel
+        self.rpms = rpms
         self.vs = [2*np.pi*radius_wheel * rpm / 60.0 for rpm in rpms]   # convert epm to meters per second
 
     def get_radius(self): return self.radius
 
-    def next_moves_virtual(self, state, time_step):
+    def get_wheel_radius(self): return self.radius_wheel
+
+    def get_dis_wheel(self): return self.dis_between_wheel
+
+    def next_moves(self, state_cur, time_step=0.1, space=None):
         """
         all possible location next move can go
-        :param state: current state of robot
-        :type state: numpy.ndarray
+        :param state_cur: current state of robot
+        :type state_cur: numpy.array
+        :param time_step: time resolution for this motion
         :return: a list of possible location of next move
         :rtype: list
         """
-        state_next = []
+        states_next = []
         dises_next = []
 
-        theta = state[-1]
+        theta = state_cur[-1]
         for v_left in self.vs:
             for v_right in self.vs:
-                v_left, v_right = v_left, v_right
-                # convert to velocity in global coord system
-                v_x, v_y = self.radius/2 * (v_left + v_right) * np.cos(theta), self.radius/2 * (v_left + v_right) * np.sin(theta)
-                w = self.radius / self.dis_between_wheel * (v_right - v_left)
-                dis = np.sqrt(math.pow((v_x * time_step), 2) + math.pow((v_y * time_step), 2))
-                d_x, d_y, d_theta = v_x * time_step, v_y * time_step, w * time_step
+                v = v_left, v_right
+                self.teleport(state_cur)
+                dis = self.move(v, time_step)
 
-                # convert to next state
-                state_copy = np.copy(state)
-                state_next.append(turtlebot.move_virtual(self, state=state_copy, step=(d_x, d_y, d_theta))
+                if space.invalidArea(self):
+                    # append next state
+                    states_next.append(self.get_state())
+                    dises_next.append(dis)
 
-                dises_next.append(dis)
-        return state_next, dises_next
+        return states_next, dises_next
 
-    def move(self, step, theta):
+    def move(self, step, time_step=0.01):
         """
-        move rigid robot
-        :param step: step length
-        :type step: int or float
-        :param theta: angle to turn
-        :type theta: int or float
-        :return:
-        :rtype:
+        
+        :param step: 
+        :param time_step: 
+        :return: 
         """
-        self.state[3] += theta  # turn robot angle first
-        self.state[0:-1] = self.state[0:-1] + step * np.array([np.cos(self.state[-1]), np.sin(self.state[-1])])
+        x, y, theta = self.state
+        v_left, v_right = step
+        # convert to velocity in global coord system
+        v_x, v_y = self.radius / 2 * (v_left + v_right) * np.cos(theta), self.radius / 2 * (v_left + v_right) * np.sin(
+            theta)
+        w = self.radius / self.dis_between_wheel * (v_right - v_left)
+        dis = np.sqrt(math.pow((v_x * time_step), 2) + math.pow((v_y * time_step), 2))
+        d_x, d_y, d_theta = v_x * time_step, v_y * time_step, w * time_step
 
-    def move_virtual(self, state, step):
-        d_x, d_y, d_theta = step
-        state[2] += d_theta  # turn robot angle first
-        state[0:-1] = state[0:-1] + np.array(d_x, d_y)
-
-
-        return state
+        self.state[-1] += d_theta  # turn robot angle first
+        self.state[0:-1] = self.state[0:-1] + np.array([d_x, d_y])
+        return dis
