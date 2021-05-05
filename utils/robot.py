@@ -215,7 +215,7 @@ class turtlebot(robot):
                 state_copy = np.copy(state)
                 state_next.append(turtlebot.move_virtual(self, state=state_copy, step=(d_x, d_y, d_theta))
 
-                dises_next.append(step)
+                dises_next.append(dis)
         return state_next, dises_next
 
     def move(self, step, theta):
