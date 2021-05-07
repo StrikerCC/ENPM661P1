@@ -10,7 +10,7 @@ class node:
         :param parent: parent of this node
         :type parent: node
         """
-        assert isinstance(state, tuple) or isinstance(state, list) or isinstance(state, np.ndarray)
+        assert isinstance(state, tuple) or isinstance(state, list) or isinstance(state, np.ndarray), type(state)
         # assert isinstance(state[0], int) or isinstance(state[0], np.int), str(state) + str(type(state[0]))
         self.state = state if isinstance(state, np.ndarray) else np.array(state)
         self._parent = parent
@@ -56,7 +56,6 @@ class nodeHeuristic(node):
         self.cost_from_start = cost_from_start
         self.cost_to_goal = cost_to_goal
         self.heuristic = self.cost_to_goal + self.cost_from_start
-        self.parent = parent
 
     def get_heuristic(self):
         return self.heuristic
@@ -67,7 +66,7 @@ class nodeHeuristic(node):
         self.heuristic = self.cost_to_goal + self.cost_from_start
 
     def update_parent(self, node_):
-        self.parent = node_
+        self._parent = node_
 
     def expand(self, robot_, space, costs_to_goal=None):
         children, distances = super().expand(robot_=robot_, space=space)
@@ -108,5 +107,5 @@ def __node_2_node_heuristic__(node_, cost_from_start, cost_to_goal):
     :param heuristic:
     :return:
     """
-    return nodeHeuristic(node_.get_state(), cost_from_start=cost_from_start, cost_to_goal=cost_to_goal, parent=node_.parent)
+    return nodeHeuristic(node_.get_state(), cost_from_start=cost_from_start, cost_to_goal=cost_to_goal, parent=node_.get_parent)
 

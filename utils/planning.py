@@ -1,8 +1,9 @@
 import heapq
 import queue
 
+import math
 import numpy as np
-# from utils.robot import robot, point_robot, rigid_robot
+# from utils.robot import point_robot, rigid_robot
 # import queue
 import cv2
 import copy
@@ -12,7 +13,6 @@ from utils.nodes import node, nodeHeuristic
 
 debug_showmap = True
 debug_nodeinfo = False
-
 
 
 class bfs:  # searching algorithm object
@@ -340,6 +340,139 @@ class Astart(bfs):
             map_cost_from_start[loc[0], loc[1], theta] = node_.get_heuristic()
             return True
         return False
+
+
+class RRT():
+    def __init__(self):
+        self.robot = None
+        self.space = None
+        self.node_start, self.node_goal = None, None
+        self.goal_sample_rate = 0.5
+        self.step_len = 10
+
+        self.color_obstacle = (0, 0, 100)
+        self.color_visited = (250, 250, 0)
+        self.color_edge = (250, 0, 250)
+        self.color_goal = (255, 255, 255)
+
+    def search(self, state_init, state_goal, robot_, map_, tolerance=5, filepath=None):
+        # make sure initial and goal state is not in obstacle
+        robot_.teleport(state_init)
+        if not map_.invalidArea(robot_) or not map_.invalidArea(robot_):
+            print("start location or goal location in or too close to obstacle", state_init, state_goal)
+            return
+
+        self.node_start = node(state_init)  # start node
+        self.node_goal = node(state_goal)  # goal node
+        self.space = map_
+        visited_loc = np.zeros(map_.size, dtype=bool)  # map mask of visited node
+        # expanded = np.zeros(map_.size, dtype=bool)
+
+        map_goal = self._initialzie_map_reach_goal(state_goal, tolerance=tolerance, size=map_.shape)  # mask of goal
+        state_map_search = self._initialzie_search_map(map_, map_goal)  # numpy representation of searching state
+
+        # open_set = [node_start]
+        vertexes = [self.node_start]
+
+        for i in range(10000):  # as long as stack is not empty, keep dfs
+            i += 1
+            if i % 1000 == 0:
+                print('loop', i, 'current keeping', len(vertexes))
+            node_random = self._generate_random_node()                      # get a random node
+            node_closest = self._nearest_neighbor(vertexes, node_random)     # take the node having closest to the random node
+            node_ = self._new_node(node_closest, node_random, robot_, space=map_)               # make new node based on closest node and robot action set
+            loc_cur = node_.get_loc()
+            if not visited_loc[loc_cur]:                                    # new node found
+                if map_goal[loc_cur].any():                                 # reach a goal
+                    break
+                else:
+                    if not map_.get_map_obstacle()[node_.get_loc()]:        # check collision
+                        visited_loc[loc_cur] = True
+                        vertexes.append(node_)
+
+                        """visualization"""
+                        self._update_search_map(state_map_search, node_)
+                        cv2.namedWindow("highlight explored", cv2.WINDOW_NORMAL)
+                        cv2.imshow('highlight explored', cv2.flip(state_map_search, 0))
+                        cv2.waitKey(1)
+
+        """search space should have some node left if answer has been found, right?"""
+        cv2.imshow('highlight explored', cv2.flip(state_map_search, 0))
+        cv2.waitKey(0)
+
+    def _initialzie_map_reach_goal(self, state_goal, tolerance, size):
+        map_ = np.zeros(size, dtype=bool)
+        map_[int(state_goal[0] - tolerance):int(state_goal[0] + tolerance),
+        int(state_goal[1] - tolerance):int(state_goal[1] + tolerance)] = True
+        return map_
+
+    def _initialzie_search_map(self, map_, map_goal):
+        search_map = np.zeros((map_.size[0], map_.size[1], 3), dtype=np.uint8)
+        search_map[map_.get_map_obstacle()] = self.color_obstacle
+        search_map[map_goal] = self.color_goal
+        return search_map
+
+    def _update_search_map(self, search_map, node_):
+        loc = node_.get_loc()
+        loc_parent = (0, 0)
+        if node_.get_parent() is not None:
+            loc_parent = node_.get_parent().get_loc()
+        search_map = cv2.line(search_map, loc[::-1], loc_parent[::-1], self.color_edge, thickness=1)
+        search_map = cv2.circle(search_map, center=loc[::-1], color=self.color_visited, radius=1)
+
+    def _generate_random_node(self):
+        self.delta = 10
+        if np.random.random() > self.goal_sample_rate:
+            x_range, y_range = self.space.size
+            return node(
+                (np.random.uniform(0 + self.delta, y_range - self.delta),
+                 np.random.uniform(0 + self.delta, y_range - self.delta))
+            )
+        else:
+            return self.node_goal
+
+    @staticmethod
+    def _nearest_neighbor(node_list, node_):
+        """
+
+        :param node_list: current expanded node
+        :type node_list:
+        :param node_: random generated node
+        :type node_:
+        :return:
+        :rtype:
+        """
+        return node_list[int(np.argmin([math.hypot(nd.get_loc()[0] - node_.get_loc()[0], nd.get_loc()[1] - node_.get_loc()[1])
+                                        for nd in node_list]))]
+
+    def _new_node(self, node_start, node_end, robot_, space):
+        """
+
+        :param node_start: node to expand from
+        :type node_start: node
+        :param node_end: node to expand toward to
+        :type node_end:
+        :return:
+        :rtype:
+        """
+        # dist, theta = self._get_distance_and_angle(node_start, node_end)
+        # dist = min(self.step_len, dist)
+        # node_new = node((node_start.get_loc()[0] + dist * math.cos(theta),
+        #                  node_start.get_loc()[1] + dist * math.sin(theta)),
+        #                 parent=node_start)
+        # return node_new
+
+        state_next, cost_next = robot_.move_toward(node_start.get_state(), node_end.get_state(), space)
+        node_new = node(state_next, parent=node_start)
+        return node_new
+
+
+    @staticmethod
+    def _get_distance_and_angle(node_start, node_end):
+        dx = node_end.get_loc()[0] - node_start.get_loc()[0]
+        dy = node_end.get_loc()[1] - node_start.get_loc()[1]
+        return math.hypot(dx, dy), math.atan2(dy, dx)
+
 
 # return a numpy array representation of distance from points on map to input point
 def dis_to_point(point, map_):

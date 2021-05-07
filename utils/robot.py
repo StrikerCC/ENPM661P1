@@ -112,6 +112,23 @@ class robot:
                     dises_next.append(dis)
         return states_next, dises_next
 
+    def move_toward(self, state_start, state_end, space):
+        state_next = None
+        cost_next = 0
+        dis_next = math.inf
+        for x in np.arange(-1, 2):  # can only move 1 at a time
+            for y in np.arange(-1, 2):  # can only move 1 at a time
+                cost = math.sqrt(x ** 2 + y ** 2)
+                move = np.array([x, y])
+                state_copy = np.copy(state_start) + move
+                dis = np.linalg.norm(state_end - state_copy)
+                if space.invalidArea(self.teleport(state_copy)):  # if robot is ok at this state in the space
+                    if dis_next > dis:                            # filter the closest one
+                        state_next = state_copy
+                        cost_next = cost
+                        dis_next = dis
+        return state_next, cost_next
+
 
 class point_robot(robot):
     def __init__(self, state=None):

@@ -41,6 +41,9 @@ class space2D:
     # def getshape(self):
     #     return self.size
 
+    def size(self):
+        return self.size
+
     def invalidArea(self, robot_):
         loc = robot_.get_loc()   # using location only
         if isinstance(robot_, point_robot):
