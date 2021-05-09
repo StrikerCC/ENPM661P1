@@ -30,7 +30,7 @@ def main():
 
     """add obstacle into map"""
     map_.add_circular_obstacle((90, 70), 70 / 2)
-    map_.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
+    map_.add_rotated_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
     map_.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),
                                (210, 270), (230, 270), (230, 280), (200, 280)])
     map_.add_ellipsoid_obstacle((246, 145), 60 / 2, 120 / 2)
@@ -63,7 +63,7 @@ def main():
 
     """show map"""
     # map_.show()
-    if map_.invalidArea(robot_.teleport([start_x, start_y])) or map_.invalidArea(robot_.teleport([goal_x, goal_y])):
+    if map_.invalidArea(robot_.teleport(start)) or map_.invalidArea(robot_.teleport(goal)):
         print("start location and goal location is ok")
 
     """planing"""

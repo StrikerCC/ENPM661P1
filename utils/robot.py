@@ -4,21 +4,32 @@ import math
 
 debug = True
 
-robot_dimention = {'rigid': {'radius': 10
-                             },
+robot_dimention = {'rigid': {'radius': 10},
                    'turtlebot': {'radius': 5,
                                  'len_between_wheel': 5,
                                  'radius_wheel': 1,
-                                 'rpm': [10, 20]}
+                                 'rpm': [50, 80]}
                    }
+
 
 class robot:
     def __init__(self, state=None):
-        self.state = None
+        self.state = None                   # robot state
         if isinstance(state, np.ndarray):
             self.state = np.copy(state)
         elif isinstance(state, list):
             self.state = np.array(state)
+
+        """motion parameters"""
+        self.step = ((-1, 1), (-1, 1))
+        self.transformations = []
+        for translation_x in range(-1, 1+1):
+            for translation_y in range(-1, 1+1):
+                transformation = np.ones(3)
+                transformation = np.diag(transformation)
+                transformation[-1, 0] = translation_x
+                transformation[-1, 1] = translation_y
+                self.transformations.append(transformation)
 
     def get_loc(self):
         return tuple((self.state[0:2]).astype(int))
@@ -41,6 +52,17 @@ class robot:
         else:
             raise AssertionError('cannot recognize input state', state)
         return self
+
+    def random_teleport(self, space):
+        """
+        random teleport to any spot of the space
+        :param space:
+        :type space:
+        :return:
+        :rtype:
+        """
+        x_range, y_range = space.size
+        self.state = np.array((np.random.uniform(0, x_range), np.random.uniform(0, y_range))).astype(int)
 
     def actionset(self):
         return [point_robot.moveUpRight,
@@ -121,8 +143,8 @@ class robot:
                 cost = math.sqrt(x ** 2 + y ** 2)
                 move = np.array([x, y])
                 state_copy = np.copy(state_start) + move
-                dis = np.linalg.norm(state_end - state_copy)
                 if space.invalidArea(self.teleport(state_copy)):  # if robot is ok at this state in the space
+                    dis = np.linalg.norm(state_end - state_copy)
                     if dis_next > dis:                            # filter the closest one
                         state_next = state_copy
                         cost_next = cost
@@ -161,10 +183,40 @@ class rigid_robot(robot):
         self.step_min, self.step_max = step_min, step_max
         self.angle_turn_min, self.angle_turn_max = angle_turn_min, angle_turn_max
         self.angel_turn_resolution = angel_turn_resolution  # change angle resolution from degree to radians
+        # self.angle_resolution = int((2 * np.pi) / self.angel_turn_resolution)
 
     def get_radius(self): return self.radius
 
     def copy(self): return rigid_robot(state=copy.deepcopy(self.state), radius=self.radius, step_resolution=self.step_resolution, step_min=self.step_min, step_max=self.step_max, angle_turn_min=self.angle_turn_min, angle_turn_max=self.angle_turn_max, angel_turn_resolution=self.angel_turn_resolution/math.pi*180)
+
+    def teleport(self, state):
+        if type(state) == np.ndarray:
+            assert state.shape == (3,), state
+        if type(state) == list or type(state) == tuple:
+            assert len(state) == 3, state
+
+        if isinstance(state, np.ndarray):
+            self.state = np.copy(state)
+        elif isinstance(state, list):
+            self.state = np.array(state)
+        elif isinstance(state, tuple):
+            self.state = np.array(state)
+        else:
+            raise AssertionError('cannot recognize input state', state)
+        return self
+
+    def random_teleport(self, space):
+        """
+        random teleport to any spot of the space
+        :param space:
+        :type space:
+        :return:
+        :rtype:
+        """
+        x_range, y_range = space.size
+        self.state = np.array((np.random.uniform(0, x_range),
+                               np.random.uniform(0, y_range),
+                              np.random.uniform(-np.pi, np.pi)))
 
     def next_moves(self, state_cur, space):
         """
@@ -198,6 +250,25 @@ class rigid_robot(robot):
         self.state[-1] += step[-1]  # turn robot angle first
         self.state[0:-1] = self.state[0:-1] + step * np.array([np.cos(self.state[-1]), np.sin(self.state[-1])])
 
+    def move_toward(self, state_start, state_end, space):
+        state_next = None
+        cost_next = 0
+        dis_next = math.inf
+
+        for turn in np.arange(-self.angle_turn_max, self.angle_turn_max + self.angel_turn_resolution,
+                              self.angel_turn_resolution):
+            for step in np.arange(self.step_max, self.step_min, -self.step_resolution):
+                self.teleport(state_start)
+                self.move((step, turn))
+                if space.invalidArea(self):  # if robot is ok at this state in the space
+                    dis = np.linalg.norm(state_end[0:-1] - self.get_state()[0:-1])  # only use location as metric
+                    if dis_next > dis:  # filter the closest one
+                        state_next = self.get_state()
+                        cost_next = step
+                        dis_next = dis
+
+        return state_next, dis_next
+
 
 class turtlebot(robot):
     def __init__(self, state=None,
@@ -211,6 +282,10 @@ class turtlebot(robot):
         self.radius_wheel = radius_wheel
         self.rpms = rpms
         self.vs = [2*np.pi*radius_wheel * rpm / 60.0 for rpm in rpms]   # convert epm to meters per second
+        self.time_step = 0.01
+
+        self.angel_turn_resolution = np.pi / 180
+        self.angle_resolution = int((2 * np.pi) / self.angel_turn_resolution)
 
     def get_radius(self): return self.radius
 
@@ -218,31 +293,35 @@ class turtlebot(robot):
 
     def get_dis_wheel(self): return self.dis_between_wheel
 
-    def next_moves(self, state_cur, time_step=0.1, space=None):
+    def teleport(self, state):
+        if type(state) == np.ndarray:
+            assert state.shape == (3,), state
+        if type(state) == list or type(state) == tuple:
+            assert len(state) == 3, state
+
+        if isinstance(state, np.ndarray):
+            self.state = np.copy(state)
+        elif isinstance(state, list):
+            self.state = np.array(state)
+        elif isinstance(state, tuple):
+            self.state = np.array(state)
+        else:
+            raise AssertionError('cannot recognize input state', state)
+        return self
+
+    def random_teleport(self, space):
         """
-        all possible location next move can go
-        :param state_cur: current state of robot
-        :type state_cur: numpy.array
-        :param time_step: time resolution for this motion
-        :return: a list of possible location of next move
-        :rtype: list
+        random teleport to any spot of the space
+        :param space:
+        :type space:
+        :return:
+        :rtype:
         """
-        states_next = []
-        dises_next = []
-
-        theta = state_cur[-1]
-        for v_left in self.vs:
-            for v_right in self.vs:
-                v = v_left, v_right
-                self.teleport(state_cur)
-                dis = self.move(v, time_step)
-
-                if space.invalidArea(self):
-                    # append next state
-                    states_next.append(self.get_state())
-                    dises_next.append(dis)
-
-        return states_next, dises_next
+        x_range, y_range = space.size
+        angle_range = self.angle_resolution
+        self.state = np.array((np.random.uniform(0, x_range),
+                               np.random.uniform(0, y_range),
+                              np.random.uniform(0, angle_range))).astype(int)
 
     def move(self, step, time_step=0.01):
         """
@@ -263,3 +342,49 @@ class turtlebot(robot):
         self.state[-1] += d_theta  # turn robot angle first
         self.state[0:-1] = self.state[0:-1] + np.array([d_x, d_y])
         return dis
+
+    def next_moves(self, state_cur, space=None):
+        """
+        all possible location next move can go
+        :param state_cur: current state of robot
+        :type state_cur: numpy.array
+        :param time_step: time resolution for this motion
+        :return: a list of possible location of next move
+        :rtype: list
+        """
+        states_next = []
+        dises_next = []
+        theta = state_cur[-1]
+
+        for v_left in self.vs:
+            for v_right in self.vs:
+                v = v_left, v_right
+                self.teleport(state_cur)
+                dis = self.move(v, self.time_step)
+
+                if space.invalidArea(self):
+                    # append next state
+                    states_next.append(self.get_state())
+                    dises_next.append(dis)
+
+        return states_next, dises_next
+
+    def move_toward(self, state_start, state_end, space):
+        state_next = None
+        cost_next = 0
+        dis_2_end_min = math.inf
+
+        for v_left in self.vs:
+            for v_right in self.vs:
+                v = v_left, v_right
+                self.teleport(state_start)
+                dis_move = self.move(v, self.time_step)
+
+                if space.invalidArea(self):  # if robot is ok at this state in the space
+                    dis_2_end = np.linalg.norm(state_end[0:-1] - self.get_state()[0:-1])  # only use location as metric
+                    if dis_2_end_min > dis_2_end:  # filter the closest one
+                        state_next = self.get_state()
+                        cost_next = dis_move
+                        dis_2_end_min = dis_2_end
+
+        return state_next, cost_next

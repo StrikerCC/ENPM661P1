@@ -18,7 +18,7 @@ def main():
 
     """testing obstacle"""
     space.add_circular_obstacle((90, 70), 70/2)
-    space.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
+    space.add_rotated_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
     space.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),
                                  (210, 270), (230, 270), (230, 280), (200, 280)])
     space.add_polygon_obstacle([(328, 63), (328+75*math.cos(math.pi/4), 63+75*math.sin(math.pi/4)),

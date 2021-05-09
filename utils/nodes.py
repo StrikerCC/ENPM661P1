@@ -14,6 +14,14 @@ class node:
         # assert isinstance(state[0], int) or isinstance(state[0], np.int), str(state) + str(type(state[0]))
         self.state = state if isinstance(state, np.ndarray) else np.array(state)
         self._parent = parent
+        self.valid = True
+
+    def get_valid(self):
+        return self.valid
+
+    def set_valid(self, flag):
+        assert isinstance(flag, bool)
+        self.valid = flag
 
     def get_state(self): return np.copy(self.state)
 
@@ -42,7 +50,7 @@ class node:
 
     # to string
     def __str__(self):
-        return str(self.state)[1:-1]
+        return 'state: ' + str(self.state) + ' valid: ' + str(self.valid)
 
     def __eq__(self, another):
         assert isinstance(another, node)
@@ -98,6 +106,26 @@ class nodeHeuristic(node):
         assert self.state.dtype == another.state.dtype, 'class state type ' + str(
             self.state.dtype) + ' not comparable with input state type' + str(another.state.dtype)
         return self.heuristic > another.heuristic
+
+
+class node_dynamic(node):
+    def __init__(self, state, parent=None):
+        super(node_dynamic, self).__init__(state, parent=parent)
+        self.valid = True
+
+    def get_valid(self):
+        return self.valid
+
+    def set_valid(self, flag):
+        assert isinstance(flag, bool)
+        self.valid = flag
+
+
+class edge():
+    def __init__(self, start, end):
+        assert isinstance(start, node) and isinstance(end, node), str(start) + '    ' + str(end)
+        self.start = start
+        self.end = end
 
 
 def __node_2_node_heuristic__(node_, cost_from_start, cost_to_goal):

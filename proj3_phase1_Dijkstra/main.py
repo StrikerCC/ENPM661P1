@@ -35,7 +35,7 @@ def main():
 
     """add obstacle into map"""
     map_.add_circular_obstacle((90, 70), 70 / 2)
-    map_.add_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
+    map_.add_rotated_rectangle_obstacle((48, 108), width=150, height=20, angle=35)
     map_.add_polygon_obstacle([(200, 230), (230, 230), (230, 240), (210, 240),
                                (210, 270), (230, 270), (230, 280), (200, 280)])
     map_.add_ellipsoid_obstacle((246, 145), 60 / 2, 120 / 2)

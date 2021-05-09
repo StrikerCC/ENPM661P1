@@ -23,8 +23,8 @@ class geometry():
         elif self.shape_name == 'circular':
             return np.linalg.norm(self.size["center"] - point) <= self.size["radius"]
         elif self.shape_name == 'ellipsoid':
-            return ((point[0]-self.size["center"][0])**2)/(self.size['semi_major_axis']**2) + \
-                   ((point[1]-self.size["center"][1])**2)/(self.size["semi_minor_axis"]**2) <= 1
+            return ((point[0] - self.size["center"][0]) ** 2) / (self.size['semi_major_axis'] ** 2) + \
+                   ((point[1] - self.size["center"][1]) ** 2) / (self.size["semi_minor_axis"] ** 2) <= 1
         # elif self.shape == 'rectangle':
         # return self.size['dl'][0] <= point[0] <= self.size['ur'][0] and \
         #        self.size['dl'][1] <= point[1] <= self.size['ur'][1]
@@ -45,11 +45,12 @@ class space2D:
         return self.size
 
     def invalidArea(self, robot_):
-        loc = robot_.get_loc()   # using location only
+        loc = robot_.get_loc()  # using location only
         if isinstance(robot_, point_robot):
             return 0 < loc[0] < self.size[0] and 0 < loc[1] < self.size[1]
         elif isinstance(robot_, rigid_robot):
-            return 0 < loc[0] - robot_.radius and loc[0] + robot_.radius < self.size[0] and 0 < loc[1] - robot_.radius and loc[1] + robot_.radius < self.size[1]
+            return 0 < loc[0] - robot_.radius and loc[0] + robot_.radius < self.size[0] and 0 < loc[
+                1] - robot_.radius and loc[1] + robot_.radius < self.size[1]
         elif isinstance(robot_, robot):
             return 0 < loc[0] < self.size[0] and 0 < loc[1] < self.size[1]
         else:
@@ -63,7 +64,7 @@ class space2DWithObstacle(space2D):
         self.map_obstacle = np.zeros(self.size, dtype=bool)  # mask obstacle in map. 1 is free space, 0 is obstacle
 
     def invalidArea(self, robot_):
-        loc = robot_.get_loc()     # using location only
+        loc = robot_.get_loc()  # using location only
         if isinstance(robot_, rigid_robot):
             Warning('using map without clearance to navigate rigid robot')
             return super().invalidArea(robot_) and not self.map_obstacle[loc]
@@ -82,7 +83,16 @@ class space2DWithObstacle(space2D):
     def get_map_obstacle(self):
         return np.copy(self.map_obstacle)
 
-    def add_rectangle_obstacle(self, corner_ll, width, height, angle):
+    def add_rectangle_obstacle(self, corner_ll, corner_ur):
+        self.obstacles.append({'type': 'rect',
+                               'corner_ll': corner_ll,
+                               'corner_ur': corner_ur
+                               })
+        map_obstacle = np.copy(self.map_obstacle).astype(np.int8)
+        map_obstacle = cv2.rectangle(map_obstacle, corner_ll, corner_ur, color=255, thickness=-1)
+        self.map_obstacle = (map_obstacle != 0)
+
+    def add_rotated_rectangle_obstacle(self, corner_ll, width, height, angle):
         """
 
         :param corner_ll:
@@ -125,29 +135,36 @@ class space2DWithObstacle(space2D):
                 if obstacle.inside((i, j)):
                     self.map_obstacle[i, j] = True
 
+    # def add_circular_obstacle(self, center, radius):
+    #     # if not expand: self.obstacles.append({'type': 'circular', 'center': center, 'radius': radius})
+    #
+    #     obstacle = geometry('circular', {"center": np.array(center)[::-1], "radius": radius})
+    #     for i in range(self.size[0]):
+    #         for j in range(self.size[1]):
+    #             if obstacle.inside((i, j)):
+    #                 self.map_obstacle[i, j] = True
     def add_circular_obstacle(self, center, radius):
-        # if not expand: self.obstacles.append({'type': 'circular', 'center': center, 'radius': radius})
-
-        obstacle = geometry('circular', {"center": np.array(center)[::-1], "radius": radius})
-        for i in range(self.size[0]):
-            for j in range(self.size[1]):
-                if obstacle.inside((i, j)):
-                    self.map_obstacle[i, j] = True
+        self.obstacles.append({'type': 'circle',
+                               'center': center,
+                               'radius': radius})
+        map_obstacle = np.copy(self.map_obstacle).astype(np.int8)
+        map_obstacle = cv2.circle(map_obstacle, center=center, radius=radius, color=255, thickness=-1)
+        self.map_obstacle = (map_obstacle != 0)
 
     def add_ellipsoid_obstacle(self, center, semi_major_axis, semi_minor_axis):
         # if not expand: self.obstacles.append({'type': 'ellipsoid', 'center': center, 'semi_major_axis': semi_major_axis,
         #                        'semi_minor_axis': semi_minor_axis})
 
         obstacle = geometry('ellipsoid', {"center": np.array(center)[::-1], "semi_major_axis": semi_minor_axis,
-                                                     "semi_minor_axis": semi_major_axis})
+                                          "semi_minor_axis": semi_major_axis})
         for i in range(self.size[0]):
             for j in range(self.size[1]):
                 if obstacle.inside((i, j)):
                     self.map_obstacle[i, j] = True
 
     def numpy_array_representation(self, map_obstacle, robot_=None):
-        img = np.zeros(self.size, dtype=np.uint8)   # free space as 0
-        img[map_obstacle] = 75      # obstacle as 0
+        img = np.zeros(self.size, dtype=np.uint8)  # free space as 0
+        img[map_obstacle] = 75  # obstacle as 0
 
         if robot_:
             loc_robot = robot_.get_loc()
@@ -157,10 +174,11 @@ class space2DWithObstacle(space2D):
             elif isinstance(robot_, rigid_robot):
                 Warning('using map without clearance to navigate rigid robot')
 
-                map_2D_with_robot = space2DWithObstacle(self.size[0], self.size[1])            # make a robot map based on obstacle map
-                map_2D_with_robot.add_circular_obstacle(loc_robot, robot_.clearance())       # treat robot as a obstacle
+                map_2D_with_robot = space2DWithObstacle(self.size[0],
+                                                        self.size[1])  # make a robot map based on obstacle map
+                map_2D_with_robot.add_circular_obstacle(loc_robot, robot_.clearance())  # treat robot as a obstacle
                 robot_in_map = map_2D_with_robot.get_map_obstacle()  # boolean mask representation of robot occupy map space, using numpy array, True if occupied, False if not
-                img[robot_in_map] = 255     # robot space as 255
+                img[robot_in_map] = 255  # robot space as 255
             else:
                 raise AssertionError('unknown type of robot for map class')
 
@@ -170,8 +188,66 @@ class space2DWithObstacle(space2D):
 
     def show(self, robot_=None):
         cv2.imshow('obstacle', self.numpy_array_representation(self.map_obstacle, robot_))
-        if cv2.waitKey(0) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             return
+
+
+class space2DWithObstacle_dynamic(space2DWithObstacle):
+    def __init__(self):
+        super(space2DWithObstacle_dynamic, self).__init__(height=300, width=400)
+        self.current = 0
+
+    def add_rectangle_obstacle(self, corner_ll, corner_ur, speed=np.array((0, 1)), period=100, new=True):
+        if new:
+            self.obstacles.append({'type': 'rect',
+                                   'corner_ll': corner_ll,
+                                   'corner_ur': corner_ur,
+                                   'speed': speed,
+                                   'period': period
+                                   })
+        corner_ll, corner_ur = np.array(corner_ll), np.array(corner_ur)
+        if self.current % period >= int(period / 2):
+            corner_ll -= speed
+            corner_ur -= speed
+        else:
+            corner_ll += speed
+            corner_ur += speed
+        map_obstacle = np.copy(self.map_obstacle).astype(np.int8)
+        corner_ll, corner_ur = tuple(corner_ll), tuple(corner_ur)
+        map_obstacle = cv2.rectangle(map_obstacle, corner_ll, corner_ur, color=255, thickness=-1)
+        self.map_obstacle = (map_obstacle != 0)
+        return corner_ll, corner_ur
+
+    def add_circular_obstacle(self, center, radius, speed=np.array((0, 1)), period=100, new=True):
+        if new:
+            self.obstacles.append({'type': 'circle',
+                                   'center': center,
+                                   'radius': radius,
+                                   'speed': speed,
+                                   'period': period
+                                   })
+        center = np.array(center)
+        if self.current % period >= int(period / 2):
+            center -= speed
+        else:
+            center += speed
+        map_obstacle = np.copy(self.map_obstacle).astype(np.int8)
+        center = tuple(center)
+        map_obstacle = cv2.circle(map_obstacle, center=center, radius=radius, color=255, thickness=-1)
+        self.map_obstacle = (map_obstacle != 0)
+        return center
+
+    def update_obstacles(self):
+        self.current += 1
+        self.map_obstacle = np.zeros(self.size, dtype=bool)
+        for obstacle in self.obstacles:
+            if obstacle['type'] == 'circle':
+                obstacle['center'] = self.add_circular_obstacle(obstacle['center'], obstacle['radius'], speed=obstacle['speed'],period=obstacle['period'], new=False)
+                print(self.current, obstacle['center'])
+            elif obstacle['type'] == 'rect':
+                obstacle['corner_ll'], obstacle['corner_ur'] = self.add_rectangle_obstacle(obstacle['corner_ll'], obstacle['corner_ur'], speed=obstacle['speed'], period=obstacle['period'], new=False)
+            else:
+                raise AssertionError('unknow type')
 
 
 class space2DWithObstacleAndClearance(space2DWithObstacle):
@@ -193,10 +269,10 @@ class space2DWithObstacleAndClearance(space2DWithObstacle):
         else:
             raise AssertionError('unknown type of robot for map class')
 
-    def add_rectangle_obstacle(self, corner_ll, width, height, angle, expand=False):
+    def add_rotated_rectangle_obstacle(self, corner_ll, width, height, angle, expand=False):
         # self.obstacles.append({'type': 'rectangle', 'corner_ll': corner_ll, 'width': width, 'height': height, 'angle': angle})
         # corner_ll, width, height, angle = self.expand(name='rectangle', parameters=[corner_ll, width, height, angle])
-        super().add_rectangle_obstacle(corner_ll, width, height, angle)
+        super().add_rotated_rectangle_obstacle(corner_ll, width, height, angle)
         self.expand()
 
     def add_polygon_obstacle(self, points):
